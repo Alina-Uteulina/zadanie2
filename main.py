@@ -10,7 +10,7 @@ class Ansari:
     def __init__(self, d):
         self.d = None
 
-    def calc_params(self, g_L, A_p, g_g):
+    def calc_params(self, v_sL, v_sg, g_L, A_p, g_g):
         self.v_sL = g_L/A_p
 
         self.v_sg = g_g/A_p
@@ -28,10 +28,10 @@ class Ansari:
                 * 3 - эмульсионный;
                 * 4 - кольцевой;
         """
-        sg1 = 0.25 * v_s + 0.333 * self.v_sL
+        sg1 = 0.25 * v_s + 0.333 * v_sL
         sg4 = 3.1 * (9.81 * sigma_L * (p_L - p_g) / p_g ** 2) ** 1 / 4
 
-        if self.v_sl < sg1:
+        if v_sl < sg1:
             fp = 1
         elif v_m > sg1:
             fp = 2
@@ -119,22 +119,20 @@ class Ansari:
 
 
     def grad(self, gr, fp, teta):
-        self.v_sL = self.calc_params(v_sL, g_L, A_p, g_g)
+         self.calc_params(v_sL, g_L, A_p, g_g)
 
-        self.v_sg = self.calc_params(v_sL, g_L, A_p, g_g)
+         self.teta = None
 
-        self.teta = None
-
-        fp = self.calc_fp(v_sL, fp, v_s, g, sigma_L, p_L, p_g)
-        if fp == 1:
-            gr = self.puz(p_tr, g, teta, f_tr, v_tr, d)
-        if fp == 2:
-            gr = self.prob(fp, beta, p_Ls, p_g, g, teta, f_Ls, v_m, d)
-        if fp == 3:
-            gr = self.muz(p_tr, g, teta, f_tr, v_tr, d)
-        if fp == 4:
-            gr = self.kol(fi, dp, g, p_c, teta)
-        return gr
+         fp = self.calc_fp(v_sL, fp, v_s, g, sigma_L, p_L, p_g)
+         if fp == 1:
+             gr = self.puz(p_tr, g, teta, f_tr, v_tr, d)
+         if fp == 2:
+             gr = self.prob(fp, beta, p_Ls, p_g, g, teta, f_Ls, v_m, d)
+         if fp == 3:
+             gr = self.muz(p_tr, g, teta, f_tr, v_tr, d)
+         if fp == 4:
+             gr = self.kol(fi, dp, g, p_c, teta)
+         return gr
 
 class Gradient:
     def grad(Ansari):
@@ -143,5 +141,5 @@ class Gradient:
 
 
     def res(Ansari, result):
-        result = solve_ivp(Ansari.grad, [0, 2000], y0=10, args=())
+        result = solve_ivp(Ansari.grad, [0, 2000], y0=10, args=(1.5, 1))
     plt.plot(result)
