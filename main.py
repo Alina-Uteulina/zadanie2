@@ -42,7 +42,7 @@ class Ansari:
         return fp
 
 
-    def puz(self, p_tr, teta, f_tr, v_tr):
+    def puz(self, p_tr, teta, f_tr, v_tr, d):
         """
         Функция расчета градиента для пузырькового режима
 
@@ -57,11 +57,11 @@ class Ansari:
         """
 
         funct_gpuz = (p_tr * 9.81 * np.sin(teta))  # гравитационная составляющая
-        funct_tpuz = (f_tr * p_tr * v_tr ** 2 / 2 * self.d)  # составляющая по трению
+        funct_tpuz = (f_tr * p_tr * v_tr ** 2 / 2 * d)  # составляющая по трению
         grad_puz = funct_gpuz + funct_tpuz
         return grad_puz
 
-    def prob(self, fp, beta, p_Ls, p_g, teta, f_Ls, v_m):
+    def prob(self, fp, beta, p_Ls, p_g, teta, f_Ls, v_m, d):
         """
         расчет градиента давления для пробкового режима
 
@@ -76,11 +76,11 @@ class Ansari:
         """
         if fp == 2:
             funct_gpr = ((1 - beta) * p_Ls + beta * p_g) * 9.81 * np.sin(teta)  # гравитационная составляющая
-            funct_tpr = f_Ls * p_Ls * v_m ** 2 / 2 * self.d * (1 - beta)  # составляющая по трению
+            funct_tpr = f_Ls * p_Ls * v_m ** 2 / 2 * d * (1 - beta)  # составляющая по трению
             grad_prob = funct_gpr + funct_tpr
         return grad_prob
 
-    def mus(self, p_tr, teta, f_tr, v_tr):
+    def mus(self, p_tr, teta, f_tr, v_tr, d):
         """
         расчет градиенты давления для эмульсионного режима
 
@@ -94,7 +94,7 @@ class Ansari:
         :param d: коэффициент
         """
 
-        funct_tmus = (f_tr * p_tr * v_tr ** 2 / 2 * self.d)  # гравитационная составляющая
+        funct_tmus = (f_tr * p_tr * v_tr ** 2 / 2 * d)  # гравитационная составляющая
         funct_gmus = p_tr * 9.81 * np.sin(teta)  # составляющая по трению
         grad_mus = funct_gmus + funct_tmus
         return grad_mus
