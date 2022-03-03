@@ -10,10 +10,12 @@ class Ansari:
     def __init__(self, d):
         self.d = None
 
-    def calc_params(self, v_sL, v_sg, g_L, A_p, g_g):
+    def calc_params(self, v_sL, v_sg, g_L, A_p, g_g, v_m):
         self.v_sL = g_L/A_p
 
         self.v_sg = g_g/A_p
+
+        self.v_m = v_sL + v_sg
 
 
     @staticmethod
@@ -72,7 +74,7 @@ class Ansari:
         :param teta: угол наклона трубы
         :param f_Ls: сила трения
         :param d: коэффициент
-        :param v_m: скорость
+        :param v_m: скорость смеси
         """
         if fp == 2:
             funct_gpr = ((1 - beta) * p_Ls + beta * p_g) * 9.81 * np.sin(teta)  # гравитационная составляющая
@@ -119,7 +121,7 @@ class Ansari:
 
 
     def grad(self, gr, fp, teta):
-         self.calc_params(v_sL, g_L, A_p, g_g)
+         self.calc_params(v_sL, v_sg, g_L, A_p, g_g, v_m)
 
          self.teta = None
 
