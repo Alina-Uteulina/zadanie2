@@ -4,25 +4,30 @@ import matplotlib.pyplot as plt
 
 C_0: float = 1.2
 C_1: float = 1.15
+teta: int = 90
 
 
 class Ansari:
-    def __init__(self, d):
-        self.d = None
+    def __init__(self, gr, fp):
+        self.d, self.teta, self.p_tr, self.f_tr, self.p_ls, self.f_ls = self.grad(gr, fp)
 
-    def calc_params(self, v_sL, v_sg, g_L, A_p, g_g, v_m):
-        self.v_sL = g_L/A_p
+    def calc_params(self, v_sl, v_sg, g_l, a_p, g_g):
+        self.v_sl = g_l/a_p
 
-        self.v_sg = g_g/A_p
+        self.v_sg = g_g/a_p
 
-        self.v_m = v_sL + v_sg
-
+        self.v_m = v_sl + v_sg
 
     @staticmethod
-    def calc_fp(self, v_sl, fp, v_s, sigma_L, p_L, p_g):
+    def calc_fp(v_sl, fp, v_s, sigma_l, p_l, p_g):
         """
         Определение структуры потока
         :param v_sl: скорость жидкости
+        :param fp: номер режима потока
+        :param v_s:
+        :param p_g:
+        :param p_l:
+        :param sigma_l: толщина пленки
         :return: номер режима потока, безразмерн.
                 режим потока:
                 * 1 - пузырьковый;
@@ -30,8 +35,8 @@ class Ansari:
                 * 3 - эмульсионный;
                 * 4 - кольцевой;
         """
-        sg1 = 0.25 * v_s + 0.333 * v_sL
-        sg4 = 3.1 * (9.81 * sigma_L * (p_L - p_g) / p_g ** 2) ** 1 / 4
+        sg1 = 0.25 * v_s + 0.333 * v_sl
+        sg4 = 3.1 * (9.81 * sigma_l * (p_l - p_g) / p_g ** 2) ** 1 / 4
 
         if v_sl < sg1:
             fp = 1
@@ -43,105 +48,103 @@ class Ansari:
             fp = 4
         return fp
 
-
-    def puz(self, p_tr, teta, f_tr, v_tr, d):
+    def puz(self, fp, p_tr, teta, f_tr, v_tr, d, grad_puz):
         """
         Функция расчета градиента для пузырькового режима
 
         Parameters
         ----------
+        :param fp: номер режима потока
         :param p_tr: плотность
-        :param g: коэффициент
         :param teta: угол наклона
         :param f_tr: сила трения
         :param v_tr: скорость двухфазного потока
         :param d: коэффициент
         """
-
-        funct_gpuz = (p_tr * 9.81 * np.sin(teta))  # гравитационная составляющая
-        funct_tpuz = (f_tr * p_tr * v_tr ** 2 / 2 * d)  # составляющая по трению
-        grad_puz = funct_gpuz + funct_tpuz
+        if fp == 1:
+            funct_gpuz = (p_tr * 9.81 * np.sin(teta))  # гравитационная составляющая
+            funct_tpuz = (f_tr * p_tr * v_tr ** 2 / 2 * d)  # составляющая по трению
+            grad_puz = funct_gpuz + funct_tpuz
         return grad_puz
 
-    def prob(self, fp, beta, p_Ls, p_g, teta, f_Ls, v_m, d):
+    def prob(self, fp, beta, p_ls, p_g, teta, f_ls, v_m, d, grad_prob):
         """
         расчет градиента давления для пробкового режима
 
         Parameters
         ----------
+        :param fp: номер режима потока
         :param beta: соотношение длины
-        :param g: коэффициент
+        :param p_ls:
+        :param p_g:
         :param teta: угол наклона трубы
-        :param f_Ls: сила трения
+        :param f_ls: сила трения
         :param d: коэффициент
         :param v_m: скорость смеси
         """
         if fp == 2:
-            funct_gpr = ((1 - beta) * p_Ls + beta * p_g) * 9.81 * np.sin(teta)  # гравитационная составляющая
-            funct_tpr = f_Ls * p_Ls * v_m ** 2 / 2 * d * (1 - beta)  # составляющая по трению
+            funct_gpr = ((1 - beta) * p_ls + beta * p_g) * 9.81 * np.sin(teta)  # гравитационная составляющая
+            funct_tpr = f_ls * p_ls * v_m ** 2 / 2 * d * (1 - beta)  # составляющая по трению
             grad_prob = funct_gpr + funct_tpr
         return grad_prob
 
-    def mus(self, p_tr, teta, f_tr, v_tr, d):
+    def mus(self, fp, p_tr, teta, f_tr, v_tr, d, grad_mus):
         """
         расчет градиенты давления для эмульсионного режима
 
         Parameters
         ----------
+        :param fp: номер режима потока
         :param p_tr: плотность
-        :param g: коэффициент
         :param teta: угол наклона трубы
         :param f_tr: сила трения
         :param v_tr: скорость двухфазного потока
         :param d: коэффициент
         """
-
-        funct_tmus = (f_tr * p_tr * v_tr ** 2 / 2 * d)  # гравитационная составляющая
-        funct_gmus = p_tr * 9.81 * np.sin(teta)  # составляющая по трению
-        grad_mus = funct_gmus + funct_tmus
+        if fp == 3:
+            funct_tmus = (f_tr * p_tr * v_tr ** 2 / 2 * d)  # гравитационная составляющая
+            funct_gmus = p_tr * 9.81 * np.sin(teta)  # составляющая по трению
+            grad_mus = funct_gmus + funct_tmus
         return grad_mus
 
-    def kol(self, fi, dp, p_c, teta):
+    def kol(self, fp, fi, dp, p_c, teta, grad_kol):
         """
         расчет давления для кольцевого режима
 
         Parameters
         ----------
+        :param fp: номер режима потока
         :param fi: коэффициент
-        :param g: коэффициент
         :param teta: угол наклона трубы
         :param dp: состовляющая градиента давления по трению для газового ядра
         :param p_c: плотность газового ядра
         """
-
-        funct_gkol = fi * dp  # гравитационная составляющая
-        funct_tkol = 9.81 * p_c * np.sin(teta)  # составляющая по трению
-        grad_kol = funct_gkol + funct_tkol
+        if fp == 4:
+            funct_gkol = fi * dp  # гравитационная составляющая
+            funct_tkol = 9.81 * p_c * np.sin(teta)  # составляющая по трению
+            grad_kol = funct_gkol + funct_tkol
         return grad_kol
 
+    def grad(self, gr, fp):
+        self.calc_params(v_sl, v_sg, g_l, a_p, g_g)
 
-    def grad(self, gr, fp, teta):
-         self.calc_params(v_sL, v_sg, g_L, A_p, g_g, v_m)
+        fp = self.calc_fp(v_sl, fp, v_s, g, sigma_l, p_l, p_g)
+        if fp == 1:
+            gr = self.puz(p_tr, teta, f_tr, v_tr, d)
+        if fp == 2:
+            gr = self.prob(fp, beta, p_ls, p_g, teta, f_ls, v_m, d)
+        if fp == 3:
+            gr = self.muz(p_tr, teta, f_tr, v_tr, d)
+        if fp == 4:
+            gr = self.kol(fi, dp, p_c, teta)
+        return gr
 
-         self.teta = None
-
-         fp = self.calc_fp(v_sL, fp, v_s, g, sigma_L, p_L, p_g)
-         if fp == 1:
-             gr = self.puz(p_tr, g, teta, f_tr, v_tr, d)
-         if fp == 2:
-             gr = self.prob(fp, beta, p_Ls, p_g, g, teta, f_Ls, v_m, d)
-         if fp == 3:
-             gr = self.muz(p_tr, g, teta, f_tr, v_tr, d)
-         if fp == 4:
-             gr = self.kol(fi, dp, g, p_c, teta)
-         return gr
 
 class Gradient:
     def grad(Ansari):
         dp = Ansari.grad()
         return dp
 
-
-    def res(Ansari, result):
+    def res(self, result):
         result = solve_ivp(Ansari.grad, [0, 2000], y0=10, args=(1.5, 1))
     plt.plot(result)
