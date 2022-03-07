@@ -8,7 +8,7 @@ teta: int = 90
 
 
 class Ansari:
-    def __init__(self, gr, fp):
+    def __init__(self, d, teta, p_tr, f_tr, p_ls, f_ls):
         self.d = d
         self.teta = teta
         self.p_tr = p_tr
