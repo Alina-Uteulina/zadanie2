@@ -9,14 +9,21 @@ teta: int = 90
 
 class Ansari:
     def __init__(self, gr, fp):
-        self.d, self.teta, self.p_tr, self.f_tr, self.p_ls, self.f_ls = self.grad(gr, fp)
+        self.d = d
+        self.teta = teta
+        self.p_tr = p_tr
+        self.f_tr = f_tr
+        self.p_ls = p_ls
+        self.f_ls = f_ls
 
-    def calc_params(self, v_sl, v_sg, g_l, a_p, g_g):
+    def calc_params(self, g_l, a_p, g_g):
         self.v_sl = g_l/a_p
 
         self.v_sg = g_g/a_p
 
         self.v_m = v_sl + v_sg
+
+        self.v_tr = v_m
 
     @staticmethod
     def calc_fp(v_sl, fp, v_s, sigma_l, p_l, p_g):
@@ -24,9 +31,9 @@ class Ansari:
         Определение структуры потока
         :param v_sl: скорость жидкости
         :param fp: номер режима потока
-        :param v_s:
-        :param p_g:
-        :param p_l:
+        :param v_s: скорость проскальзывания
+        :param p_g: плотность газа
+        :param p_l: плотность жидкости
         :param sigma_l: толщина пленки
         :return: номер режима потока, безразмерн.
                 режим потока:
@@ -75,8 +82,8 @@ class Ansari:
         ----------
         :param fp: номер режима потока
         :param beta: соотношение длины
-        :param p_ls:
-        :param p_g:
+        :param p_ls: плотность
+        :param p_g: плотность газа
         :param teta: угол наклона трубы
         :param f_ls: сила трения
         :param d: коэффициент
@@ -102,9 +109,9 @@ class Ansari:
         :param d: коэффициент
         """
         if fp == 3:
-            funct_tmus = (f_tr * p_tr * v_tr ** 2 / 2 * d)  # гравитационная составляющая
+            funct_mus = (f_tr * p_tr * v_tr ** 2 / 2 * d)  # гравитационная составляющая
             funct_gmus = p_tr * 9.81 * np.sin(teta)  # составляющая по трению
-            grad_mus = funct_gmus + funct_tmus
+            grad_mus = funct_gmus + funct_mus
         return grad_mus
 
     def kol(self, fp, fi, dp, p_c, teta, grad_kol):
@@ -125,7 +132,7 @@ class Ansari:
             grad_kol = funct_gkol + funct_tkol
         return grad_kol
 
-    def grad(self, gr, fp):
+    def grad(self, gr, fp, g_l, g_g):
         self.calc_params(v_sl, v_sg, g_l, a_p, g_g)
 
         fp = self.calc_fp(v_sl, fp, v_s, g, sigma_l, p_l, p_g)
@@ -147,4 +154,4 @@ class Gradient:
 
     def res(self, result):
         result = solve_ivp(Ansari.grad, [0, 2000], y0=10, args=(1.5, 1))
-    plt.plot(result)
+        plt.plot(result)
