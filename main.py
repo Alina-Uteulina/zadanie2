@@ -24,13 +24,13 @@ class Ansari:
         self.v_m = v_sl + v_sg
 
         self.v_tr = v_m
+        self.v__sg = v__sg
 
     @staticmethod
-    def calc_fp(v_sl, fp, v_s, sigma_l, p_l, p_g):
+    def calc_fp(v_sl, v_s, sigma_l, p_l, p_g):
         """
         Определение структуры потока
         :param v_sl: скорость жидкости
-        :param fp: номер режима потока
         :param v_s: скорость проскальзывания
         :param p_g: плотность газа
         :param p_l: плотность жидкости
@@ -47,15 +47,20 @@ class Ansari:
 
         if v_sl < sg1:
             fp = 1
+            return fp
         elif v_m > sg1:
             fp = 2
+            return fp
         elif v__sg < sg4:
             fp = 3
+            return fp
         elif v_sc > sg4:
             fp = 4
-        return fp
+            return fp
+        else:
+            return 1
 
-    def puz(self, fp, p_tr, theta, f_tr, v_tr, d, grad_puz):
+    def puz(self, fp, p_tr, theta, f_tr, v_tr, d):
         """
         Функция расчета градиента для пузырькового режима
 
@@ -74,7 +79,7 @@ class Ansari:
             grad_puz = funct_gpuz + funct_tpuz
         return grad_puz
 
-    def prob(self, fp, beta, p_ls, p_g, theta, f_ls, v_m, d, grad_prob):
+    def prob(self, fp, beta, p_ls, p_g, theta, f_ls, v_m, d):
         """
         расчет градиента давления для пробкового режима
 
@@ -95,7 +100,7 @@ class Ansari:
             grad_prob = funct_gpr + funct_tpr
         return grad_prob
 
-    def mus(self, fp, p_tr, theta, f_tr, v_tr, d, grad_mus):
+    def mus(self, fp, p_tr, theta, f_tr, v_tr, d):
         """
         расчет градиенты давления для эмульсионного режима
 
@@ -114,7 +119,7 @@ class Ansari:
             grad_mus = funct_gmus + funct_mus
         return grad_mus
 
-    def kol(self, fp, fi, dp, p_c, theta, grad_kol):
+    def kol(self, fp, fi, dp, p_c, theta):
         """
         расчет давления для кольцевого режима
 
@@ -132,26 +137,26 @@ class Ansari:
             grad_kol = funct_gkol + funct_tkol
         return grad_kol
 
-    def grad(self, gr, fp, g_l, a_p, g_g, p_g):
-        self.calc_params(v_sl, v_sg, g_l, a_p, g_g)
+    def grad(self, g_l, g_g, a_p, p_g):
+        self.calc_params(g_l, a_p, g_g)
 
-        fp = self.calc_fp(v_sl, fp, v_s, g, sigma_l, p_l, p_g)
+        fp = self.calc_fp(self.v_sl, v_s, sigma_l, p_l, p_g)
         if fp == 1:
-            gr = self.puz(p_tr, theta, f_tr, v_tr, d)
+            gr = self.puz(fp, self.p_tr, theta, self.f_tr, self.v_tr, d)
         if fp == 2:
-            gr = self.prob(fp, beta, p_ls, p_g, theta, f_ls, v_m, d)
+            gr = self.prob(fp, beta, p_ls, p_g, theta, f_ls, self.v_m, d)
         if fp == 3:
-            gr = self.muz(p_tr, theta, f_tr, v_tr, d)
+            gr = self.mus(fp, self.p_tr, theta, self.f_tr, self.v_tr, d)
         if fp == 4:
-            gr = self.kol(fi, dp, p_c, theta)
+            gr = self.kol(fp, fi, dp, p_c, theta)
         return gr
 
 
-class Gradient:
-    def grad(Ansari):
-        dp = Ansari.grad()
-        return dp
+def gradient(self, fp, g_l, a_p, g_g, p_g):
+    self.ansari = Ansari(d, theta, p_tr, f_tr, p_ls, f_ls)
+    dp = self.ansari.grad(fp, g_l, a_p, g_g, p_g)
+    return dp
 
-    def res(self, result):
-        result = solve_ivp(Ansari.grad, [0, 2000], y0=10, args=(1.5, 1))
-        plt.plot(result)
+def res():
+    result = solve_ivp(Ansari.grad, [0, 2000], y0=10, args=(1.5, 1))
+plt.plot(res.'массив глубин')
