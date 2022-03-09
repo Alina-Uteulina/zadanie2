@@ -7,7 +7,7 @@ p_g = int(input())
 m_l = int(input())
 m_g = int(input())
 g: float = 9.8
-teta: int = 90
+theta: int = 90
 f_tr = int(input())
 v_s = int(input())
 d = int(input())
@@ -41,7 +41,7 @@ v_m = v_sg1 + v_ls1
 # Эмульсионный режим
 C_0 = int(input())
 # параметры двухфазного потока
-v__sg = np.sin(teta) / (4 - C_0) * C_0 * v_sl + v_s
+v__sg = np.sin(theta) / (4 - C_0) * C_0 * v_sl + v_s
 
 
 # Кольцевой режим
@@ -60,5 +60,5 @@ if f_e > 0.9:
     z = 1 + 300 * delta
 else:
     z = 1 + 24 * delta * (p_l / p_g) ** (1 / 3)
-dp_c = z / (1 - 2 * delta) ** 5 * dp + p_c * g * np.sin(teta)
-fi = dp_c - p_c * g * np.sin(teta) / dp
+dp_c = z / (1 - 2 * delta) ** 5 * dp + p_c * g * np.sin(theta)
+fi = dp_c - p_c * g * np.sin(theta) / dp
