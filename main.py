@@ -24,7 +24,6 @@ class Ansari:
         self.v_m = v_sl + v_sg
 
         self.v_tr = v_m
-        self.v__sg = v__sg
 
     @staticmethod
     def calc_fp(v_sl, v_s, sigma_l, p_l, p_g):
