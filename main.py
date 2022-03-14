@@ -1,6 +1,7 @@
 from данные import *
 from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
+import numpy as np
 
 C_0: float = 1.2
 C_1: float = 1.15
@@ -136,7 +137,7 @@ class Ansari:
             grad_kol = funct_gkol + funct_tkol
         return grad_kol
 
-    def grad(self, g_l, g_g, a_p, p_g):
+    def grad(self, g_l, g_g, a_p, p_g, gr):
         self.calc_params(g_l, a_p, g_g)
 
         fp = self.calc_fp(self.v_sl, v_s, sigma_l, p_l, p_g)
@@ -151,11 +152,15 @@ class Ansari:
         return gr
 
 
-def gradient(self, fp, g_l, a_p, g_g, p_g):
+def gradient(self, g_l, a_p, g_g, p_g):
     self.ansari = Ansari(d, theta, p_tr, f_tr, p_ls, f_ls)
-    dp = self.ansari.grad(fp, g_l, a_p, g_g, p_g)
+    dp = self.ansari.grad(g_l, a_p, g_g, p_g, a_p)
     return dp
 
-def res():
-    result = solve_ivp(Ansari.grad, [0, 2000], y0=10, args=(1.5, 1))
-plt.plot(res.'массив глубин')
+
+g_g = 100
+g_l = 150
+
+
+result = solve_ivp(Ansari.grad, t_span=[0, 2000], y0=np.array([150]), args=(g_g, g_l))
+plt.plot(result.y0)
