@@ -153,10 +153,10 @@ class Ansari:
             grad_kol = funct_gkol + funct_tkol
         return grad_kol
 
-    def grad(self, g_l, g_g, a_p, p_g):
+    def grad(self, g_l, g_g, a_p, p_g, v_s, sigma_l, p_l, beta, p_ls, f_ls, fi, dp, p_c, p):
         self.calc_params(g_l, a_p, g_g, self.v_sl, self.v_sg, self.v_m)
 
-        fp = self.calc_fp(self.v_sl, self.v_s, sigma_l, p_l, p_g, p)
+        fp = self.calc_fp(self.v_sl, v_s, sigma_l, p_l, p_g, p)
         if fp == 1:
             gr = self.puz(fp, self.p_tr, theta, self.f_tr, self.v_tr, d)
         if fp == 2:
@@ -168,9 +168,9 @@ class Ansari:
         return gr
 
 
-def gradient(d, theta, p_tr, f_tr, p_ls, f_ls, g_l, a_p, g_g, p_g):
+def gradient(d, theta, p_tr, f_tr, p_ls, f_ls, g_l, a_p, g_g, p_g, v_s, sigma_l, p_l, beta, fi, dp, p_c, p):
     ans = Ansari(d, theta, p_tr, f_tr, p_ls, f_ls)
-    dp = ans.grad(g_l, a_p, g_g, p_g)
+    dp = ans.grad(g_l, a_p, g_g, p_g, v_s, sigma_l, p_l, beta, p_ls, f_ls, fi, dp, p_c, p)
     return dp
 
 
@@ -181,6 +181,6 @@ t = 30
 
 
 result = solve_ivp(gradient, t_span=[0, 2000],
-                   y0=np.array([150]), args=(g_g, g_l, d, theta, t, p_tr, f_tr, p_ls, f_ls, g_l, a_p, g_g, p_g))
+                   y0=np.array([150]), args=(g_g, g_l, d, theta, t))
 plt.plot(result.y0)
 print(result)
