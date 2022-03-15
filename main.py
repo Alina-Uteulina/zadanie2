@@ -1,7 +1,7 @@
-from данные import *
 from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
 import numpy as np
+from данные import Parametrs
 
 C_0: float = 1.2
 C_1: float = 1.15
@@ -9,6 +9,12 @@ theta: int = 90
 
 
 class Ansari:
+    def param(self, d, p_l, lambda_l, p_g, m_g, m_l, g_l, a_p, v_s, beta, h_lls, f_ls, m_ls, v_gtb, v_gls, v_ltb, h_ltb,
+              v_lls, c_0, theta, p_c, sigma_l, f_sc, g_g, delta, g):
+        p = Parametrs(d, p_l, lambda_l, p_g, m_g, m_l, g_l, a_p, v_s, beta, h_lls, f_ls, m_ls, v_gtb, v_gls, v_ltb,
+                      h_ltb, v_lls, c_0, theta, p_c, sigma_l, f_sc, g_g, delta, g)
+        return p
+
     def __init__(self, d, theta, p_tr, f_tr, p_ls, f_ls):
         self.d = d
         self.theta = theta
@@ -17,7 +23,7 @@ class Ansari:
         self.p_ls = p_ls
         self.f_ls = f_ls
 
-    def calc_params(self, g_l, a_p, g_g):
+    def calc_params(self, g_l, a_p, g_g, v_sl, v_sg, v_m):
         self.v_sl = g_l/a_p
 
         self.v_sg = g_g/a_p
@@ -27,7 +33,8 @@ class Ansari:
         self.v_tr = v_m
 
     @staticmethod
-    def calc_fp(v_sl, v_s, sigma_l, p_l, p_g):
+    def calc_fp(v_sl, v_s, sigma_l, p_l, p_g, p):
+
         """
         Определение структуры потока
         :param v_sl: скорость жидкости
@@ -44,6 +51,15 @@ class Ansari:
         """
         sg1 = 0.25 * v_s + 0.333 * v_sl
         sg4 = 3.1 * (9.81 * sigma_l * (p_l - p_g) / p_g ** 2) ** 1 / 4
+
+        v_sg1 = p.v_pr()
+        v_ls1 = p.vl_pr()
+        v_m = p.vm_pr(v_sg1, v_ls1)
+        v__sg = p.v_mus(v_sl)
+        v_sg3 = p.v_kol()
+        v_kr = p.vk_kol(v_sg3)
+        f_e = p.f_kol(v_kr)
+        v_sc = p.vs_kol(f_e, v_sl, v_sg3)
 
         if v_sl < sg1:
             fp = 1
@@ -137,10 +153,10 @@ class Ansari:
             grad_kol = funct_gkol + funct_tkol
         return grad_kol
 
-    def grad(self, g_l, g_g, a_p, p_g, gr):
-        self.calc_params(g_l, a_p, g_g)
+    def grad(self, g_l, g_g, a_p, p_g):
+        self.calc_params(g_l, a_p, g_g, self.v_sl, self.v_sg, self.v_m)
 
-        fp = self.calc_fp(self.v_sl, v_s, sigma_l, p_l, p_g)
+        fp = self.calc_fp(self.v_sl, self.v_s, sigma_l, p_l, p_g, p)
         if fp == 1:
             gr = self.puz(fp, self.p_tr, theta, self.f_tr, self.v_tr, d)
         if fp == 2:
@@ -152,15 +168,19 @@ class Ansari:
         return gr
 
 
-def gradient(self, g_l, a_p, g_g, p_g):
-    self.ansari = Ansari(d, theta, p_tr, f_tr, p_ls, f_ls)
-    dp = self.ansari.grad(g_l, a_p, g_g, p_g, a_p)
+def gradient(d, theta, p_tr, f_tr, p_ls, f_ls, g_l, a_p, g_g, p_g):
+    ans = Ansari(d, theta, p_tr, f_tr, p_ls, f_ls)
+    dp = ans.grad(g_l, a_p, g_g, p_g)
     return dp
 
 
 g_g = 100
 g_l = 150
+d = 60
+t = 30
 
 
-result = solve_ivp(Ansari.grad, t_span=[0, 2000], y0=np.array([150]), args=(g_g, g_l))
+result = solve_ivp(gradient, t_span=[0, 2000],
+                   y0=np.array([150]), args=(g_g, g_l, d, theta, t, p_tr, f_tr, p_ls, f_ls, g_l, a_p, g_g, p_g))
 plt.plot(result.y0)
+print(result)
