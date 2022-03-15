@@ -42,6 +42,7 @@ class Ansari:
         :param p_g: плотность газа
         :param p_l: плотность жидкости
         :param sigma_l: толщина пленки
+        :param p: обозначение класса Parametrs
         :return: номер режима потока, безразмерн.
                 режим потока:
                 * 1 - пузырьковый;
@@ -158,11 +159,11 @@ class Ansari:
 
         fp = self.calc_fp(self.v_sl, v_s, sigma_l, p_l, p_g, p)
         if fp == 1:
-            gr = self.puz(fp, self.p_tr, theta, self.f_tr, self.v_tr, d)
+            gr = self.puz(fp, self.p_tr, theta, self.f_tr, self.v_tr, self.d)
         if fp == 2:
-            gr = self.prob(fp, beta, p_ls, p_g, theta, f_ls, self.v_m, d)
+            gr = self.prob(fp, beta, p_ls, p_g, theta, f_ls, self.v_m, self.d)
         if fp == 3:
-            gr = self.mus(fp, self.p_tr, theta, self.f_tr, self.v_tr, d)
+            gr = self.mus(fp, self.p_tr, theta, self.f_tr, self.v_tr, self.d)
         if fp == 4:
             gr = self.kol(fp, fi, dp, p_c, theta)
         return gr
