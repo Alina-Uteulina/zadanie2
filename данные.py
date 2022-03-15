@@ -4,7 +4,7 @@ import math as mh
 
 class Parametrs:
 
-    def __init__(self, d, p_l, lambda_l, p_g, m_l, m_g, g_l, a_p, v_s, beta, h_lls, f_ls, m_ls, v_gtb, v_gls, v_ltb,
+    def __init__(self, d, p_l, lambda_l, p_g, m_g, m_l, g_l, a_p, v_s, beta, h_lls, f_ls, m_ls, v_gtb, v_gls, v_ltb,
                  h_ltb, v_lls, c_0, theta, p_c, sigma_l, f_sc, g_g, delta, g):
         self.d = d
         self.p_l = p_l
