@@ -29,8 +29,8 @@ class Ansari:
                       h_ltb, v_lls, c_0, theta, p_c, sigma_l, f_sc, g_g, delta)
         return p
 
-    def calc_params(self, g_l, a_p, g_g, v_sl, v_sg, v_m, lambda_l, m_g, m_l, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb,
-                    v_lls, c_0, theta, p_c, sigma_l, f_sc, delta, d):
+    def calc_params(self, g_l, a_p, g_g, lambda_l, m_g, m_l, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, theta,
+                    p_c, sigma_l, f_sc, delta, d):
         self.p = self.dan(d, p_l, lambda_l, p_g, m_g, m_l, g_l, a_p, v_s, beta, h_lls, f_ls, m_ls, v_gtb, v_gls, v_ltb,
                           h_ltb, v_lls, c_0, theta, p_c, sigma_l, f_sc, g_g, delta)
 
@@ -38,12 +38,11 @@ class Ansari:
 
         self.v_sg = g_g/a_p
 
-        self.v_m = v_sl + v_sg
+        self.v_m = self.v_sl + self.v_sg
 
-        self.v_tr = v_m
+        self.v_tr = self.v_m
 
-    @staticmethod
-    def calc_fp(v_sl, v_s, sigma_l, p_l, p_g, p):
+    def calc_fp(self, v_sl, v_s, sigma_l, p_l, p_g, p):
 
         """
         Определение структуры потока
@@ -173,7 +172,7 @@ class Ansari:
         return grad_kol
 
     def grad(self, g_l, g_g, a_p, lambda_l, m_g, m_l, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, f_sc, delta):
-        self.calc_params(g_l, a_p, g_g, self.v_sl, self.v_sg, self.v_m, lambda_l, m_g, m_l, h_lls, m_ls, v_gtb, v_gls,
+        self.calc_params(g_l, a_p, g_g, lambda_l, m_g, m_l, h_lls, m_ls, v_gtb, v_gls,
                          v_ltb, h_ltb, v_lls, c_0, theta, p_c, sigma_l, f_sc, delta, d)
 
         fp = self.calc_fp(self.v_sl, self.v_s, self.sigma_l, self.p_l, self.p_g, self.p)
@@ -188,7 +187,7 @@ class Ansari:
         return gr
 
 
-def gradient(g_l, a_p, g_g, lambda_l, m_g, m_l, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, f_sc, delta):
+def gradient(h, pt, g_l, a_p, g_g, lambda_l, m_g, m_l, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, f_sc, delta):
     ans = Ansari(d, theta, p_tr, f_tr, p_ls, f_ls, p_c, p_l, p_g, sigma_l, beta, v_s)
     dp = ans.grad(g_l, a_p, g_g, lambda_l, m_g, m_l, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, f_sc, delta)
     return dp
@@ -225,9 +224,11 @@ c_0 = 1
 f_sc = 1
 delta = 1
 g = 9.8
+h = 2000
+pt = 1
 
 result = solve_ivp(gradient, t_span=[0, 2000],
                    y0=np.array([150]), args=(g_l, a_p, g_g, lambda_l, m_g, m_l, h_lls, m_ls, v_gtb, v_gls, v_ltb,
-                                             h_ltb, v_lls, c_0, f_sc, delta, t))
-plt.plot(result.y0)
+                                             h_ltb, v_lls, c_0, f_sc, delta))
+plt.plot(result. y0)
 print(result)
