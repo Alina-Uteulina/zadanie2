@@ -5,7 +5,7 @@ import math as mh
 class Parametrs:
 
     def __init__(self, d, p_l, lambda_l, p_g, m_g, m_l, g_l, a_p, v_s, beta, h_lls, f_ls, m_ls, v_gtb, v_gls, v_ltb,
-                 h_ltb, v_lls, c_0, theta, p_c, sigma_l, f_sc, g_g, delta, g):
+                 h_ltb, v_lls, c_0, theta, p_c, sigma_l, f_sc, g_g, delta):
         self.d = d
         self.p_l = p_l
         self.lambda_l = lambda_l
@@ -31,7 +31,6 @@ class Parametrs:
         self.f_sc = f_sc
         self.g_g = g_g
         self.delta = delta
-        self.g = g
 
     def pp_puz(self):
         p_tr = self.p_l * self.lambda_l + self.p_g * (1 - self.lambda_l)
@@ -103,9 +102,9 @@ class Parametrs:
         return z
 
     def dp_c_kol(self, z, dp):
-        dp_c = z / (1 - 2 * self.delta) ** 5 * dp + self.p_c * self.g * np.sin(self.theta)
+        dp_c = z / (1 - 2 * self.delta) ** 5 * dp + self.p_c * 9.81 * np.sin(self.theta)
         return dp_c
 
     def fi_kol(self, dp_c, dp):
-        fi = dp_c - self.p_c * self.g * np.sin(self.theta) / dp
+        fi = dp_c - self.p_c * 9.81 * np.sin(self.theta) / dp
         return fi
