@@ -230,5 +230,10 @@ pt = 1
 result = solve_ivp(gradient, t_span=[0, 2000],
                    y0=np.array([150]), args=(g_l, a_p, g_g, lambda_l, m_g, m_l, h_lls, m_ls, v_gtb, v_gls, v_ltb,
                                              h_ltb, v_lls, c_0, f_sc, delta))
-plt.plot(result. y0)
+
+# x = np.arange(0, 100)
+# y = [result for _ in range(0, 100)]
+plt.plot(result.t, result.y[0])
+plt.show()
 print(result)
+
