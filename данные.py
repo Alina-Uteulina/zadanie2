@@ -4,8 +4,8 @@ import math as mh
 
 class Parametrs:
 
-    def __init__(self, d, p_l, lambda_l, p_g, m_g, m_l, g_l, a_p, v_s, beta, h_lls, f_ls, m_ls, v_gtb, v_gls, v_ltb,
-                 h_ltb, v_lls, c_0, theta, p_c, sigma_l, f_sc, g_g, delta):
+    def __init__(self, d, p_l, lambda_l, p_g, m_g, m_l, g_l, a_p, v_s, beta, f_ls, m_ls, v_gtb, v_gls, v_ltb,
+                 h_ltb, h_lls, v_lls, c_0, theta, p_c, sigma_l, f_sc, g_g, delta):
         self.d = d
         self.p_l = p_l
         self.lambda_l = lambda_l
@@ -16,18 +16,18 @@ class Parametrs:
         self.a_p = a_p
         self.v_s = v_s
         self.beta = beta
-        self.h_lls = h_lls
         self.f_ls = f_ls
         self.m_ls = m_ls
+        self.h_lls = h_lls
         self.v_gtb = v_gtb
-        self.v_gls = v_gls
-        self.v_ltb = v_ltb
+        self.v_gls = v_gls  #скорость пузырька газа в пробке жидкости
+        self.v_ltb = v_ltb  #скорость, окружающей пузырек Тейлора, пленки
         self.h_ltb = h_ltb
         self.v_lls = v_lls
         self.c_0 = c_0
         self.theta = theta
         self.p_c = p_c
-        self.sigma_l = sigma_l
+        self.sigma_l = sigma_l  #поверхностное натяжение
         self.f_sc = f_sc
         self.g_g = g_g
         self.delta = delta
@@ -83,6 +83,10 @@ class Parametrs:
         return v_kr
 
     def f_kol(self, v_kr):
+        """
+        Часть объема жидкости, захваченная потоком газа
+        :param v_kr: скорость крит
+        """
         f_e = 1 - mh.exp((-0.125)*(v_kr - 1.5))
         return f_e
 
@@ -95,6 +99,9 @@ class Parametrs:
         return dp
 
     def z_kol(self, f_e):
+        """
+        коэффициент, связывающий силу трения с толщиной пленки
+        """
         if f_e > 0.9:
             z = 1 + 300 * self.delta
         else:
