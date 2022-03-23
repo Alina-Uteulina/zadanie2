@@ -123,13 +123,12 @@ class Ansari:
         grad_prob = funct_gpr + funct_tpr
         return grad_prob
 
-    def mus(self, p_tr, theta, f_tr, v_tr, d):
+    def muz(self, p_tr, theta, f_tr, v_tr, d):
         """
         расчет градиенты давления для эмульсионного режима
 
         Parameters
         ----------
-        :param fp: номер режима потока
         :param p_tr: плотность
         :param theta: угол наклона трубы
         :param f_tr: сила трения
@@ -137,10 +136,10 @@ class Ansari:
         :param d: коэффициент
         """
 
-        funct_mus = (f_tr * p_tr * v_tr ** 2 / 2 * d)  # гравитационная составляющая
-        funct_gmus = p_tr * 9.81 * np.sin(theta)  # составляющая по трению
-        grad_mus = funct_gmus + funct_mus
-        return grad_mus
+        funct_muz = (f_tr * p_tr * v_tr ** 2 / 2 * d)  # гравитационная составляющая
+        funct_gmuz = p_tr * 9.81 * np.sin(theta)  # составляющая по трению
+        grad_muz = funct_gmuz + funct_muz
+        return grad_muz
 
     def kol(self, p_c, theta, par):
         """
@@ -176,7 +175,7 @@ class Ansari:
         if fp == 2:
             gr = self.prob(self.beta, self.p_ls, self.p_g, self.theta, self.f_ls, self.v_m, self.d)
         if fp == 3:
-            gr = self.mus(self.p_tr, self.theta, self.f_tr, self.v_tr, self.d)
+            gr = self.muz(self.p_tr, self.theta, self.f_tr, self.v_tr, self.d)
         if fp == 4:
             gr = self.kol(self.p_c, self.theta, self.par)
         return gr
@@ -184,7 +183,7 @@ class Ansari:
 
 def gradient(h, pt, g_l, a_p, g_g, lambda_l, m_g, m_l, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, f_sc,
              delta):
-    mul, mug = pvt(p, t)
+    rs, bo, oil_fvf_vasquez_above, mus = pvt(p, t)
     ans = Ansari(d, theta, p_tr, f_tr, p_ls, f_ls, p_c, p_l, p_g, sigma_l, beta, v_s)
     dp = ans.grad(g_l, a_p, g_g, lambda_l, m_g, m_l, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, f_sc, delta)
     return dp
@@ -200,6 +199,13 @@ v_s = 50
 sigma_l = 50
 p_l = 100
 beta = 10
+h_lls = 1
+m_ls = 1
+v_gtb = 1
+v_gls = 1
+v_ltb = 1
+h_ltb = 1
+v_lls = 1
 fi = 100
 p_c = 10
 p = 1
@@ -210,13 +216,6 @@ f_ls = 2
 lambda_l = 1
 m_g = 1
 m_l = 1
-h_lls = 1
-m_ls = 1
-v_gtb = 1
-v_gls = 1
-v_ltb = 1
-h_ltb = 1
-v_lls = 1
 c_0 = 1
 f_sc = 1
 delta = 1
@@ -228,8 +227,6 @@ result = solve_ivp(gradient, t_span=[0, 2000],
                    y0=np.array([150]), args=(g_l, a_p, g_g, lambda_l, m_g, m_l, h_lls, m_ls, v_gtb, v_gls, v_ltb,
                                              h_ltb, v_lls, c_0, f_sc, delta))
 
-# x = np.arange(0, 100)
-# y = [result for _ in range(0, 100)]
 plt.plot(result.t, result.y[0])
 plt.show()
 print(result)
