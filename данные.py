@@ -4,14 +4,14 @@ import math as mh
 
 class Parametrs:
 
-    def __init__(self, d, p_l, lambda_l, p_g, m_g, m_l, g_l, a_p, v_s, beta, f_ls, m_ls, v_gtb, v_gls, v_ltb,
+    def __init__(self, d, p_l, lambda_l, p_g, m_g, mus, g_l, a_p, v_s, beta, f_ls, m_ls, v_gtb, v_gls, v_ltb,
                  h_ltb, h_lls, v_lls, c_0, theta, p_c, sigma_l, f_sc, g_g, delta):
         self.d = d
         self.p_l = p_l
         self.lambda_l = lambda_l
         self.p_g = p_g
         self.m_g = m_g
-        self.m_l = m_l
+        self.mus = mus
         self.g_l = g_l
         self.a_p = a_p
         self.v_s = v_s
@@ -37,7 +37,7 @@ class Parametrs:
         return p_tr
 
     def mp_puz(self):
-        m_tr = self.m_l * self.lambda_l + self.m_g * (1 - self.lambda_l)
+        m_tr = self.mus * self.lambda_l + self.m_g * (1 - self.lambda_l)
         return m_tr
 
     def v_puz(self):
