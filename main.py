@@ -183,12 +183,20 @@ class Ansari:
 
 def gradient(h, pt, g_l, a_p, g_g, lambda_l, m_g, m_l, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, f_sc,
              delta):
-    rs, bo, oil_fvf_vasquez_above, mus = pvt(p, t)
+    p = pt[0]
+    t = pt[1]
+    rs = calc_rs(p, t, p_l, p_g)
+    bo = calc_bo_st(rs, p_g, p_l, t)
+    oil_fvf_vasquez_above = oil_bo_vb(p, compr, pb, bob)
+    mus = calc_viscosity(p_l, p_g, t, p)
     ans = Ansari(d, theta, p_tr, f_tr, p_ls, f_ls, p_c, p_l, p_g, sigma_l, beta, v_s)
     dp = ans.grad(g_l, a_p, g_g, lambda_l, m_g, m_l, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, f_sc, delta)
     return dp
 
 
+pb = 1  # давление насыщения
+bob = 1  # объемный коэф при давлении насыщения
+compr = 1
 g_g = 100
 g_l = 150
 d = 60
@@ -232,108 +240,109 @@ plt.show()
 print(result)
 
 
-def pvt(p, t):
-    p = pt[0]
-    t = pt[1]
-
-    def calc_rs(p: float, t: float, p_oil: float, p_g: float) -> float:
-        """
-        Метод расчета газосодержания по корреляции Standing
+def calc_rs(p: float, t: float, p_l: float, p_g: float) -> float:
+    """
+    Метод расчета газосодержания по корреляции Standing
 
         Parameters
-        ----------
-        :param p: давление, (Па)
-        :param t: температура, (К)
-        :param p_oil: относительная плотность нефти, (доли),
-        (относительно воды с плотностью 1000 кг/м3 при с.у.)
-        :param p_g: относительная плотность газа, (доли),
-        (относительно в-ха с плотностью 1.2217 кг/м3 при с.у.)
+    ----------
+    :param p: давление, (Па)
+    :param t: температура, (К)
+    :param p_l: относительная плотность нефти, (доли),
+    (относительно воды с плотностью 1000 кг/м3 при с.у.)
+    :param p_g: относительная плотность газа, (доли),
+    (относительно в-ха с плотностью 1.2217 кг/м3 при с.у.)
 
-        :return: газосодержание, (м3/м3)
-        -------
-        """
-        yg = 1.225 + 0.00168 * t - 1.76875 / p_oil
-        rs = p_g * (1.924 * 10 ** (-6) * p / 10 ** yg) ** 1.205
-        return rs
+    :return: газосодержание, (м3/м3)
+    -------
+    """
+    yg = 1.225 + 0.00168 * t - 1.76875 / p_l
+    rs = p_g * (1.924 * 10 ** (-6) * p / 10 ** yg) ** 1.205
+    return rs
 
-    def calc_bo_st(rs: float, gamma_gas: float, gamma_oil: float, t: float) -> float:
-        """
-        Метод расчета объемного коэффициента нефти по корреляции Standing
 
-        Parameters
-        ----------
-        :param rs: газосодержание,  (м3/м3)
-        :param gamma_oil: относительная плотность нефти, (доли),
-        (относительно воды с плотностью 1000 кг/м3 при с.у.)
-        :param gamma_gas: относительная плотность газа, (доли),
-        (относительно в-ха с плотностью 1.2217 кг/м3 при с.у.)
-        :param t: температура, (К)
+def calc_bo_st(rs: float, p_g: float, p_l: float, t: float) -> float:
+    """
+    Метод расчета объемного коэффициента нефти по корреляции Standing
 
-        :return: объемный коэффициент нефти, (м3/м3)
-        -------
-        """
-        bo = 0.972 + 0.000147 * (5.614583333333334 * rs * (gamma_gas / gamma_oil) ** 0.5 +
-                                 2.25 * t - 574.5875) ** 1.175
-        return bo
+    Parameters
+    ----------
+    :param rs: газосодержание,  (м3/м3)
+    :param p_l: относительная плотность нефти, (доли),
+    (относительно воды с плотностью 1000 кг/м3 при с.у.)
+    :param p_g: относительная плотность газа, (доли),
+    (относительно в-ха с плотностью 1.2217 кг/м3 при с.у.)
+    :param t: температура, (К)
 
-    def oil_bo_vb(p, compr, pb, bob):
-        """
-        Метод расчета объемного коэффициента нефти по корреляции Vasquez
-        при давлении выше давления насыщения
+    :return: объемный коэффициент нефти, (м3/м3)
+    -------
+    """
+    bo = 0.972 + 0.000147 * (5.614583333333334 * rs * (p_g / p_l) ** 0.5 +
+                             2.25 * t - 574.5875) ** 1.175
+    return bo
 
-        Parameters
-        ----------
-        :param p: давление, (Па)
-        :param compr: сжимаемость нефти, (1/Па)
-        :param pb: давление насыщения, (Па)
-        :param bob: объемный коэффициент при давлении насыщения, (безразм.)
 
-        :return: объемный коэффициент нефти, (м3/м3)
-        -------
-        """
-        oil_fvf_vasquez_above = bob * np.exp(compr * 145.03773773020924 * (pb - p))
-        return oil_fvf_vasquez_above
+def oil_bo_vb(p, compr, pb, bob):
+    """
+    Метод расчета объемного коэффициента нефти по корреляции Vasquez
+    при давлении выше давления насыщения
 
-    def __oil_liveviscosity_beggs(oil_deadvisc, rs):
-        """
-        Метод расчета вязкости нефти, насыщенной газом, по корреляции Beggs
+    Parameters
+    ----------
+    :param p: давление, (Па)
+    :param compr: сжимаемость нефти, (1/Па)
+    :param pb: давление насыщения, (Па)
+    :param bob: объемный коэффициент при давлении насыщения, (безразм.)
 
-        Parameters
-        ----------
-        :param oil_deadvisc: вязкость дегазированной нефти, (сПз)
-        :param rs: газосодержание, (м3/м3)
+    :return: объемный коэффициент нефти, (м3/м3)
+    -------
+    """
+    oil_fvf_vasquez_above = bob * np.exp(compr * 145.03773773020924 * (pb - p))
+    return oil_fvf_vasquez_above
 
-        :return: вязкость, насыщенной газом нефти, (сПз)
-        -------
-        """
-        # Конвертация газосодержания в куб. футы/баррель
-        rs_new = rs / 0.17810760667903522
 
-        a = 10.715 * (rs_new + 100) ** (-0.515)
-        b = 5.44 * (rs_new + 150) ** (-0.338)
-        oil_liveviscosity_beggs = a * oil_deadvisc ** b
-        return oil_liveviscosity_beggs
+def __oil_liveviscosity_beggs(oil_deadvisc, rs):
+    """
+    Метод расчета вязкости нефти, насыщенной газом, по корреляции Beggs
 
-    def __oil_deadviscosity_beggs(gamma_oil, t):
-        """
-        Метод расчета вязкости дегазированной нефти по корреляции Beggs
+    Parameters
+    ----------
+    :param oil_deadvisc: вязкость дегазированной нефти, (сПз)
+    :param rs: газосодержание, (м3/м3)
 
-        Parameters
-        ----------
-        :param gamma_oil: относительная плотность нефти, (доли),
-        (относительно воды с плотностью 1000 кг/м3 при с.у.)
-        :param t: температура, (К)
+    :return: вязкость, насыщенной газом нефти, (сПз)
+    -------
+    """
+    # Конвертация газосодержания в куб. футы/баррель
+    rs_new = rs / 0.17810760667903522
 
-        :return: вязкость дегазированной нефти, сПз
-        -------
-        """
-        api = 141.5 / gamma_oil - 135.5
-        x = 10 ** (3.0324 - 0.02023 * api) * t ** (-1.163)
-        mu = 10 ** x - 1
-        return mu
+    a = 10.715 * (rs_new + 100) ** (-0.515)
+    b = 5.44 * (rs_new + 150) ** (-0.338)
+    oil_liveviscosity_beggs = a * oil_deadvisc ** b
+    return oil_liveviscosity_beggs
 
-    def calc_viscosity(gamma_oil, gamma_gas, t, p):
-        rs = calc_rs(p, t, gamma_oil, gamma_gas)
-        mud = __oil_deadviscosity_beggs(gamma_oil, t)
-        mus = __oil_liveviscosity_beggs(mud, rs)
-        return mus
+
+def __oil_deadviscosity_beggs(gamma_oil, t):
+    """
+    Метод расчета вязкости дегазированной нефти по корреляции Beggs
+
+    Parameters
+    ----------
+    :param gamma_oil: относительная плотность нефти, (доли),
+    (относительно воды с плотностью 1000 кг/м3 при с.у.)
+    :param t: температура, (К)
+
+    :return: вязкость дегазированной нефти, сПз
+    -------
+    """
+    api = 141.5 / gamma_oil - 135.5
+    x = 10 ** (3.0324 - 0.02023 * api) * t ** (-1.163)
+    mu = 10 ** x - 1
+    return mu
+
+
+def calc_viscosity(gamma_oil, gamma_gas, t, p):
+    rs = calc_rs(p, t, gamma_oil, gamma_gas)
+    mud = __oil_deadviscosity_beggs(gamma_oil, t)
+    mus = __oil_liveviscosity_beggs(mud, rs)
+    return mus
