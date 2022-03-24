@@ -186,10 +186,10 @@ def gradient(h, pt, g_l, a_p, g_g, lambda_l, m_g, mus, h_lls, m_ls, v_gtb, v_gls
              delta):
     p = pt[0]
     t = pt[1]
-    rs = calc_rs(p, t, p_l, p_g)
-    bo = calc_bo_st(rs, p_g, p_l, t)
-    oil_density = calc_oil_density(rs, bo, p_l, p_g)
-    mus = calc_viscosity(p_l, p_g, t, p)
+    rs = calc_rs(p, t, gamma_oil, gamma_gas)
+    bo = calc_bo_st(rs, gamma_gas, gamma_oil, t)
+    oil_density = calc_oil_density(rs, bo, gamma_oil, gamma_gas)
+    mus = calc_viscosity(gamma_oil, gamma_gas, t, p)
     ans = Ansari(d, theta, p_tr, f_tr, p_ls, f_ls, p_c, oil_density, p_g, sigma_l, beta, v_s)
     dp = ans.grad(g_l, a_p, g_g, lambda_l, m_g, mus, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, f_sc, delta,
                   oil_density)
