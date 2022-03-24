@@ -183,7 +183,7 @@ class Ansari:
 
 
 def gradient(h, pt, g_l, a_p, g_g, lambda_l, m_g, mus, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, f_sc,
-             delta):
+             delta, gamma_oil, gamma_gas):
     p = pt[0]
     t = pt[1]
     rs = calc_rs(p, t, gamma_oil, gamma_gas)
