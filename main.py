@@ -9,7 +9,7 @@ theta: int = 90
 
 
 class Ansari:
-    def __init__(self, d, theta, p_tr, f_tr, p_ls, f_ls, p_c, p_l, p_g, sigma_l, beta, v_s):
+    def __init__(self, d, theta, p_tr, f_tr, p_ls, f_ls, p_c, oil_density, p_g, sigma_l, beta, v_s):
         self.d = d
         self.theta = theta
         self.p_tr = p_tr
@@ -17,22 +17,22 @@ class Ansari:
         self.p_ls = p_ls
         self.f_ls = f_ls
         self.p_c = p_c
-        self.p_l = p_l
+        self.oil_density = oil_density
         self.p_g = p_g
         self.sigma_l = sigma_l
         self.beta = beta
         self.v_s = v_s
 
-    def dan(self, d, p_l, lambda_l, p_g, m_g, mus, g_l, a_p, v_s, beta, h_lls, f_ls, m_ls, v_gtb, v_gls, v_ltb, h_ltb,
-            v_lls, c_0, theta, p_c, sigma_l, f_sc, g_g, delta):
-        par = Parametrs(d, p_l, lambda_l, p_g, m_g, mus, g_l, a_p, v_s, beta, h_lls, f_ls, m_ls, v_gtb, v_gls, v_ltb,
-                        h_ltb, v_lls, c_0, theta, p_c, sigma_l, f_sc, g_g, delta)
+    def dan(self, d, oil_density, lambda_l, p_g, m_g, mus, g_l, a_p, v_s, beta, h_lls, f_ls, m_ls, v_gtb, v_gls, v_ltb,
+            h_ltb, v_lls, c_0, theta, p_c, sigma_l, f_sc, g_g, delta):
+        par = Parametrs(d, oil_density, lambda_l, p_g, m_g, mus, g_l, a_p, v_s, beta, h_lls, f_ls, m_ls, v_gtb, v_gls,
+                        v_ltb, h_ltb, v_lls, c_0, theta, p_c, sigma_l, f_sc, g_g, delta)
         return par
 
     def calc_params(self, g_l, a_p, g_g, lambda_l, m_g, mus, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, theta,
-                    p_c, sigma_l, f_sc, delta, d):
-        self.par = self.dan(d, p_l, lambda_l, p_g, m_g, mus, g_l, a_p, v_s, beta, h_lls, f_ls, m_ls, v_gtb, v_gls,
-                            v_ltb, h_ltb, v_lls, c_0, theta, p_c, sigma_l, f_sc, g_g, delta)
+                    p_c, sigma_l, f_sc, delta, d, oil_density):
+        self.par = self.dan(d, oil_density, lambda_l, p_g, m_g, mus, g_l, a_p, v_s, beta, h_lls, f_ls, m_ls, v_gtb,
+                            v_gls, v_ltb, h_ltb, v_lls, c_0, theta, p_c, sigma_l, f_sc, g_g, delta)
 
         self.v_sl = g_l/a_p
 
@@ -42,14 +42,14 @@ class Ansari:
 
         self.v_tr = self.v_m
 
-    def calc_fp(self, v_sl, v_s, sigma_l, p_l, p_g, par):
+    def calc_fp(self, v_sl, v_s, sigma_l, oil_density, p_g, par):
 
         """
         Определение структуры потока
         :param v_sl: скорость жидкости
         :param v_s: скорость проскальзывания
         :param p_g: плотность газа
-        :param p_l: плотность жидкости
+        :param oil_density: плотность
         :param sigma_l: толщина пленки
         :param par: обозначение класса Parametrs
         :return: номер режима потока, безразмерн.
@@ -60,7 +60,7 @@ class Ansari:
                 * 4 - кольцевой;
         """
         sg1 = 0.25 * v_s + 0.333 * v_sl
-        sg4 = 3.1 * (9.81 * sigma_l * (p_l - p_g) / p_g ** 2) ** 1 / 4
+        sg4 = 3.1 * (9.81 * sigma_l * (oil_density - p_g) / p_g ** 2) ** 1 / 4
 
         v_sg1 = par.v_pr()
         v_ls1 = par.vl_pr()
@@ -165,11 +165,12 @@ class Ansari:
         grad_kol = funct_gkol + funct_tkol
         return grad_kol
 
-    def grad(self, g_l, g_g, a_p, lambda_l, m_g, mus, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, f_sc, delta):
-        self.calc_params(g_l, a_p, g_g, lambda_l, m_g, mus, h_lls, m_ls, v_gtb, v_gls,
-                         v_ltb, h_ltb, v_lls, c_0, theta, p_c, sigma_l, f_sc, delta, d)
+    def grad(self, g_l, g_g, a_p, lambda_l, m_g, mus, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, f_sc, delta,
+             oil_density):
+        self.calc_params(g_l, a_p, g_g, lambda_l, m_g, mus, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, theta,
+                         p_c, sigma_l, f_sc, delta, d, oil_density)
 
-        fp = self.calc_fp(self.v_sl, self.v_s, self.sigma_l, self.p_l, self.p_g, self.par)
+        fp = self.calc_fp(self.v_sl, self.v_s, self.sigma_l, self.oil_density, self.p_g, self.par)
         if fp == 1:
             gr = self.puz(self.p_tr, self.theta, self.f_tr, self.v_tr, self.d)
         if fp == 2:
@@ -188,16 +189,18 @@ def gradient(h, pt, g_l, a_p, g_g, lambda_l, m_g, mus, h_lls, m_ls, v_gtb, v_gls
     rs = calc_rs(p, t, p_l, p_g)
     bo = calc_bo_st(rs, p_g, p_l, t)
     oil_density = calc_oil_density(rs, bo, p_l, p_g)
-    oil_fvf_vasquez_above = oil_bo_vb(p, compr, pb, bob)
     mus = calc_viscosity(p_l, p_g, t, p)
-    ans = Ansari(d, theta, p_tr, f_tr, p_ls, f_ls, p_c, p_l, p_g, sigma_l, beta, v_s)
-    dp = ans.grad(g_l, a_p, g_g, lambda_l, m_g, mus, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, f_sc, delta)
+    ans = Ansari(d, theta, p_tr, f_tr, p_ls, f_ls, p_c, oil_density, p_g, sigma_l, beta, v_s)
+    dp = ans.grad(g_l, a_p, g_g, lambda_l, m_g, mus, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, f_sc, delta,
+                  oil_density)
     return dp
 
 
-pb = 1  # давление насыщения
+gamma_gas = 0.7
+gamma_oil = 0.8
+pb = 1000  # давление насыщения
 bob = 1  # объемный коэф при давлении насыщения
-compr = 1
+compr = 9.87 * 10 ** (-6)
 g_g = 100
 g_l = 150
 d = 60
@@ -241,7 +244,7 @@ plt.show()
 print(result)
 
 
-def calc_rs(p: float, t: float, p_l: float, p_g: float) -> float:
+def calc_rs(p: float, t: float, gamma_oil: float, gamma_gas: float) -> float:
     """
     Метод расчета газосодержания по корреляции Standing
 
@@ -249,60 +252,38 @@ def calc_rs(p: float, t: float, p_l: float, p_g: float) -> float:
     ----------
     :param p: давление, (Па)
     :param t: температура, (К)
-    :param p_l: относительная плотность нефти, (доли),
+    :param gamma_oil: относительная плотность нефти, (доли),
     (относительно воды с плотностью 1000 кг/м3 при с.у.)
-    :param p_g: относительная плотность газа, (доли),
+    :param gamma_gas: относительная плотность газа, (доли),
     (относительно в-ха с плотностью 1.2217 кг/м3 при с.у.)
 
     :return: газосодержание, (м3/м3)
     -------
     """
-    yg = 1.225 + 0.00168 * t - 1.76875 / p_l
-    rs = p_g * (1.924 * 10 ** (-6) * p / 10 ** yg) ** 1.205
+    yg = 1.225 + 0.00168 * t - 1.76875 / gamma_oil
+    rs = gamma_gas * (1.924 * 10 ** (-6) * p / 10 ** yg) ** 1.205
     return rs
 
 
-def calc_bo_st(rs: float, p_g: float, p_l: float, t: float) -> float:
+def calc_bo_st(rs: float, gamma_oil: float, gamma_gas: float, t: float) -> float:
     """
     Метод расчета объемного коэффициента нефти по корреляции Standing
 
     Parameters
     ----------
     :param rs: газосодержание,  (м3/м3)
-    :param p_l: относительная плотность нефти, (доли),
+    :param gamma_oil: относительная плотность нефти, (доли),
     (относительно воды с плотностью 1000 кг/м3 при с.у.)
-    :param p_g: относительная плотность газа, (доли),
+    :param gamma_gas: относительная плотность газа, (доли),
     (относительно в-ха с плотностью 1.2217 кг/м3 при с.у.)
     :param t: температура, (К)
 
     :return: объемный коэффициент нефти, (м3/м3)
     -------
     """
-    bo = 0.972 + 0.000147 * (5.614583333333334 * rs * (p_g / p_l) ** 0.5 +
+    bo = 0.972 + 0.000147 * (5.614583333333334 * rs * (gamma_gas / gamma_oil) ** 0.5 +
                              2.25 * t - 574.5875) ** 1.175
     return bo
-
-
-def calc_oil_density(rs, bo, p_l, p_g):
-    """
-    Метод расчета плотности нефти, в котором в зависимости
-    от указанного типа корреляции вызывается \
-    соответствующий метод расчета
-
-    Parameters
-    ----------
-    :param rs: газосодержание, (м3/м3)
-    :param bo: объемный коэффициент нефти, (м3/м3)
-    :param p_l: относительная плотность нефти, (доли),
-    (относительно воды с плотностью 1000 кг/м3 при с.у.)
-    :param p_g: относительная плотность газа, (доли),
-    (относительно в-ха с плотностью 1.2217 кг/м3 при с.у.)
-
-    :return: плотность нефти, (кг/м3)
-    -------
-    """
-    oil_density = (1000 * p_l+(rs * p_g * 1.2217)/1000)/bo
-    return oil_density
 
 
 def oil_bo_vb(p, compr, pb, bob):
@@ -324,6 +305,42 @@ def oil_bo_vb(p, compr, pb, bob):
     return oil_fvf_vasquez_above
 
 
+def calc_bo(p, t, gamma_oil, gamma_gas, compr, pb):
+    if p <= pb:
+        rs = calc_rs(p, t, gamma_oil, gamma_gas)
+        bo = calc_bo_st(rs, gamma_gas, gamma_oil, t)
+        return bo
+
+    rsb = calc_rs(pb, t, gamma_oil, gamma_gas)
+    bob = calc_bo_st(rsb, gamma_gas, gamma_oil, t)
+
+    bo = oil_bo_vb(p, compr, pb, bob)
+    return bo
+
+
+def calc_oil_density(rs, bo, gamma_oil, gamma_gas):
+    """
+    Метод расчета плотности нефти, в котором в зависимости
+    от указанного типа корреляции вызывается \
+    соответствующий метод расчета
+
+    Parameters
+    ----------
+    :param rs: газосодержание, (м3/м3)
+    :param bo: объемный коэффициент нефти, (м3/м3)
+    :param gamma_oil: относительная плотность нефти, (доли),
+    (относительно воды с плотностью 1000 кг/м3 при с.у.)
+    :param gamma_gas: относительная плотность газа, (доли),
+    (относительно в-ха с плотностью 1.2217 кг/м3 при с.у.)
+
+    :return: плотность нефти, (кг/м3)
+    -------
+    """
+    oil_density = (1000 * gamma_oil+(rs * gamma_gas * 1.2217)/1000)/bo
+    return oil_density
+
+
+# Вязкость
 def __oil_liveviscosity_beggs(oil_deadvisc, rs):
     """
     Метод расчета вязкости нефти, насыщенной газом, по корреляции Beggs
