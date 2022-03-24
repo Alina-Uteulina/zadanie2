@@ -182,69 +182,6 @@ class Ansari:
         return gr
 
 
-def gradient(h, pt, g_l, a_p, g_g, lambda_l, m_g, mus, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, f_sc,
-             delta, gamma_oil, gamma_gas):
-    p = pt[0]
-    t = pt[1]
-    rs = calc_rs(p, t, gamma_oil, gamma_gas)
-    bo = calc_bo_st(rs, gamma_gas, gamma_oil, t)
-    oil_density = calc_oil_density(rs, bo, gamma_oil, gamma_gas)
-    mus = calc_viscosity(gamma_oil, gamma_gas, t, p)
-    ans = Ansari(d, theta, p_tr, f_tr, p_ls, f_ls, p_c, oil_density, p_g, sigma_l, beta, v_s)
-    dp = ans.grad(g_l, a_p, g_g, lambda_l, m_g, mus, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, f_sc, delta,
-                  oil_density)
-    return dp
-
-
-sigma_l = 1.5
-gamma_gas = 0.7
-gamma_oil = 0.8
-pb = 1000  # давление насыщения
-bob = 1  # объемный коэф при давлении насыщения
-compr = 9.87 * 10 ** (-6)
-g_g = 100
-g_l = 150
-d = 60
-t = 30
-a_p = 20
-p_g = 100
-v_s = 50
-sigma_l = 50
-p_l = 100
-beta = 10
-h_lls = 1
-m_ls = 1
-v_gtb = 1
-v_gls = 1
-v_ltb = 1
-h_ltb = 1
-v_lls = 1
-fi = 100
-p_c = 10
-p = 1
-p_tr = 1
-f_tr = 2
-p_ls = 1
-f_ls = 2
-lambda_l = 1
-m_g = 1
-m_l = 1
-c_0 = 1
-f_sc = 1
-delta = 1
-g = 9.8
-h = 2000
-pt = 1
-
-result = solve_ivp(gradient, t_span=[0, 2000],
-                   y0=np.array([150]), args=(g_l, a_p, g_g, lambda_l, m_g, h_lls, m_ls, v_gtb, v_gls, v_ltb,
-                                             h_ltb, v_lls, c_0, f_sc, delta))
-
-plt.plot(result.t, result.y[0])
-plt.show()
-print(result)
-
-
 def calc_rs(p: float, t: float, gamma_oil: float, gamma_gas: float) -> float:
     """
     Метод расчета газосодержания по корреляции Standing
@@ -387,3 +324,68 @@ def calc_viscosity(gamma_oil, gamma_gas, t, p):
     mud = __oil_deadviscosity_beggs(gamma_oil, t)
     mus = __oil_liveviscosity_beggs(mud, rs)
     return mus
+
+
+def gradient(h, pt, g_l, a_p, g_g, lambda_l, m_g, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, f_sc,
+             delta, gamma_oil, gamma_gas):
+    p = pt[0]
+    t = pt[1]
+    rs = calc_rs(p, t, gamma_oil, gamma_gas)
+    bo = calc_bo_st(rs, gamma_gas, gamma_oil, t)
+    oil_density = calc_oil_density(rs, bo, gamma_oil, gamma_gas)
+    mus = calc_viscosity(gamma_oil, gamma_gas, t, p)
+    ans = Ansari(d, theta, p_tr, f_tr, p_ls, f_ls, p_c, oil_density, p_g, sigma_l, beta, v_s)
+    dp = ans.grad(g_l, a_p, g_g, lambda_l, m_g, mus, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, f_sc, delta,
+                  oil_density)
+    dt = 20 + 0.03 * h
+    return dp, dt
+
+
+sigma_l = 1.5
+gamma_gas = 0.7
+gamma_oil = 0.8
+pb = 1000  # давление насыщения
+bob = 1  # объемный коэф при давлении насыщения
+compr = 9.87 * 10 ** (-6)
+g_g = 100
+g_l = 150
+d = 60
+t = 30
+a_p = 20
+p_g = 100
+v_s = 50
+p_l = 100
+beta = 10
+h_lls = 1
+m_ls = 1
+v_gtb = 1
+v_gls = 1
+v_ltb = 1
+h_ltb = 1
+v_lls = 1
+fi = 100
+p_c = 10
+p = 1
+p_tr = 1
+f_tr = 2
+p_ls = 1
+f_ls = 2
+lambda_l = 1
+m_g = 1
+m_l = 1
+c_0 = 1
+f_sc = 1
+delta = 1
+g = 9.8
+h = 2000
+pt = 1
+result = solve_ivp(gradient, t_span=[0, 2000],
+                   y0=[101.325, 20], args=(g_l, a_p, g_g, lambda_l, m_g, h_lls, m_ls, v_gtb, v_gls, v_ltb,
+                                             h_ltb, v_lls, c_0, f_sc, delta, gamma_oil, gamma_gas))
+
+plt.plot(result.t, result.y[0])
+plt.show()
+print(result)
+
+
+
