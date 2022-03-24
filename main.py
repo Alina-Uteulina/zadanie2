@@ -196,6 +196,7 @@ def gradient(h, pt, g_l, a_p, g_g, lambda_l, m_g, mus, h_lls, m_ls, v_gtb, v_gls
     return dp
 
 
+sigma_l = 1.5
 gamma_gas = 0.7
 gamma_oil = 0.8
 pb = 1000  # давление насыщения
