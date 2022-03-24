@@ -4,10 +4,10 @@ import math as mh
 
 class Parametrs:
 
-    def __init__(self, d, p_l, lambda_l, p_g, m_g, mus, g_l, a_p, v_s, beta, f_ls, m_ls, v_gtb, v_gls, v_ltb,
+    def __init__(self, d, oil_density, lambda_l, p_g, m_g, mus, g_l, a_p, v_s, beta, f_ls, m_ls, v_gtb, v_gls, v_ltb,
                  h_ltb, h_lls, v_lls, c_0, theta, p_c, sigma_l, f_sc, g_g, delta):
         self.d = d
-        self.p_l = p_l
+        self.oil_density = oil_density
         self.lambda_l = lambda_l
         self.p_g = p_g
         self.m_g = m_g
@@ -33,7 +33,7 @@ class Parametrs:
         self.delta = delta
 
     def pp_puz(self):
-        p_tr = self.p_l * self.lambda_l + self.p_g * (1 - self.lambda_l)
+        p_tr = self.oil_density * self.lambda_l + self.p_g * (1 - self.lambda_l)
         return p_tr
 
     def mp_puz(self):
@@ -53,7 +53,7 @@ class Parametrs:
         return v_tr
     """Пробковый режим"""
     def p_pr(self):
-        p_ls = self.p_l * self.h_lls + self.p_g * (1 - self.h_lls)
+        p_ls = self.oil_density * self.h_lls + self.p_g * (1 - self.h_lls)
         return p_ls
 
     def v_pr(self):
@@ -79,7 +79,7 @@ class Parametrs:
         return v_sg3
 
     def vk_kol(self, v_sg3):
-        v_kr = 10000 * v_sg3 * self.m_g / self.sigma_l * (self.p_g / self.p_l) ** 0.5
+        v_kr = 10000 * v_sg3 * self.m_g / self.sigma_l * (self.p_g / self.oil_density) ** 0.5
         return v_kr
 
     def f_kol(self, v_kr):
@@ -105,7 +105,7 @@ class Parametrs:
         if f_e > 0.9:
             z = 1 + 300 * self.delta
         else:
-            z = 1 + 24 * self.delta * (self.p_l / self.p_g) ** (1 / 3)
+            z = 1 + 24 * self.delta * (self.oil_density / self.p_g) ** (1 / 3)
         return z
 
     def dp_c_kol(self, z, dp):
