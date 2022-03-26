@@ -4,15 +4,15 @@ import math as mh
 
 class Parametrs:
 
-    def __init__(self, d, oil_density, lambda_l, p_g, m_g, mus, g_l, a_p, v_s, beta, f_ls, m_ls, v_gtb, v_gls, v_ltb,
-                 h_ltb, h_lls, v_lls, c_0, theta, p_c, sigma_l, f_sc, g_g, delta):
+    def __init__(self, d, oil_density, lambda_l, rho_gas, m_g, mus, q_l, a_p, v_s, beta, f_ls, m_ls, v_gtb, v_gls, v_ltb,
+                 h_ltb, h_lls, v_lls, c_0, theta, p_c, sigma_l, f_sc, q_g, delta):
         self.d = d
         self.oil_density = oil_density
         self.lambda_l = lambda_l
-        self.p_g = p_g
+        self.rho_gas = rho_gas
         self.m_g = m_g
         self.mus = mus
-        self.g_l = g_l
+        self.q_l = q_l
         self.a_p = a_p
         self.v_s = v_s
         self.beta = beta
@@ -29,11 +29,11 @@ class Parametrs:
         self.p_c = p_c
         self.sigma_l = sigma_l  #поверхностное натяжение
         self.f_sc = f_sc
-        self.g_g = g_g
+        self.q_g = q_g
         self.delta = delta
 
     def pp_puz(self):
-        p_tr = self.oil_density * self.lambda_l + self.p_g * (1 - self.lambda_l)
+        p_tr = self.oil_density * self.lambda_l + self.rho_gas * (1 - self.lambda_l)
         return p_tr
 
     def mp_puz(self):
@@ -41,7 +41,7 @@ class Parametrs:
         return m_tr
 
     def v_puz(self):
-        v_sl = self.g_l / self.a_p
+        v_sl = self.q_l / self.a_p
         return v_sl
 
     def vs_puz(self, v_sl):
@@ -53,7 +53,7 @@ class Parametrs:
         return v_tr
     """Пробковый режим"""
     def p_pr(self):
-        p_ls = self.oil_density * self.h_lls + self.p_g * (1 - self.h_lls)
+        p_ls = self.oil_density * self.h_lls + self.rho_gas * (1 - self.h_lls)
         return p_ls
 
     def v_pr(self):
@@ -75,11 +75,11 @@ class Parametrs:
 
     """Кольцевой режим"""
     def v_kol(self):
-        v_sg3 = self.g_g / self.a_p
+        v_sg3 = self.q_g / self.a_p
         return v_sg3
 
     def vk_kol(self, v_sg3):
-        v_kr = 10000 * v_sg3 * self.m_g / self.sigma_l * (self.p_g / self.oil_density) ** 0.5
+        v_kr = 10000 * v_sg3 * self.m_g / self.sigma_l * (self.rho_gas / self.oil_density) ** 0.5
         return v_kr
 
     def f_kol(self, v_kr):
@@ -105,7 +105,7 @@ class Parametrs:
         if f_e > 0.9:
             z = 1 + 300 * self.delta
         else:
-            z = 1 + 24 * self.delta * (self.oil_density / self.p_g) ** (1 / 3)
+            z = 1 + 24 * self.delta * (self.oil_density / self.rho_gas) ** (1 / 3)
         return z
 
     def dp_c_kol(self, z, dp):
