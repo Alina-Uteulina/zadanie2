@@ -2,6 +2,7 @@ from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
 import numpy as np
 from данные import Parametrs
+from scipy.optimize import newton
 
 C_0: float = 1.2
 C_1: float = 1.15
@@ -9,7 +10,7 @@ theta: int = 90
 
 
 class Ansari:
-    def __init__(self, d, theta, p_tr, f_tr, p_ls, f_ls, p_c, oil_density, p_g, sigma_l, beta, v_s):
+    def __init__(self, d, theta, p_tr, f_tr, p_ls, f_ls, p_c, oil_density, rho_gas, sigma_l, beta, v_s):
         self.d = d
         self.theta = theta
         self.p_tr = p_tr
@@ -18,37 +19,37 @@ class Ansari:
         self.f_ls = f_ls
         self.p_c = p_c
         self.oil_density = oil_density
-        self.p_g = p_g
+        self.rho_gas = rho_gas
         self.sigma_l = sigma_l
         self.beta = beta
         self.v_s = v_s
 
-    def dan(self, d, oil_density, lambda_l, p_g, m_g, mus, g_l, a_p, v_s, beta, h_lls, f_ls, m_ls, v_gtb, v_gls, v_ltb,
-            h_ltb, v_lls, c_0, theta, p_c, sigma_l, f_sc, g_g, delta):
-        par = Parametrs(d, oil_density, lambda_l, p_g, m_g, mus, g_l, a_p, v_s, beta, h_lls, f_ls, m_ls, v_gtb, v_gls,
-                        v_ltb, h_ltb, v_lls, c_0, theta, p_c, sigma_l, f_sc, g_g, delta)
+    def dan(self, d, oil_density, lambda_l, rho_gas, m_g, mus, q_l, a_p, v_s, beta, h_lls, f_ls, m_ls, v_gtb, v_gls,
+            v_ltb, h_ltb, v_lls, c_0, theta, p_c, sigma_l, f_sc, q_g, delta):
+        par = Parametrs(d, oil_density, lambda_l, rho_gas, m_g, mus, q_l, a_p, v_s, beta, h_lls, f_ls, m_ls, v_gtb,
+                        v_gls, v_ltb, h_ltb, v_lls, c_0, theta, p_c, sigma_l, f_sc, q_g, delta)
         return par
 
-    def calc_params(self, g_l, a_p, g_g, lambda_l, m_g, mus, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, theta,
-                    p_c, sigma_l, f_sc, delta, d, oil_density):
-        self.par = self.dan(d, oil_density, lambda_l, p_g, m_g, mus, g_l, a_p, v_s, beta, h_lls, f_ls, m_ls, v_gtb,
-                            v_gls, v_ltb, h_ltb, v_lls, c_0, theta, p_c, sigma_l, f_sc, g_g, delta)
+    def calc_params(self, q_l, a_p, q_g, lambda_l, m_g, mus, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, theta,
+                    p_c, sigma_l, f_sc, delta, d, oil_density, rho_gas):
+        self.par = self.dan(d, oil_density, lambda_l, rho_gas, m_g, mus, q_l, a_p, v_s, beta, h_lls, f_ls, m_ls, v_gtb,
+                            v_gls, v_ltb, h_ltb, v_lls, c_0, theta, p_c, sigma_l, f_sc, q_g, delta)
 
-        self.v_sl = g_l/a_p
+        self.v_sl = q_l/a_p
 
-        self.v_sg = g_g/a_p
+        self.v_sg = q_g/a_p
 
         self.v_m = self.v_sl + self.v_sg
 
         self.v_tr = self.v_m
 
-    def calc_fp(self, v_sl, v_s, sigma_l, oil_density, p_g, par):
+    def calc_fp(self, v_sl, v_s, sigma_l, oil_density, rho_gas, par):
 
         """
         Определение структуры потока
         :param v_sl: скорость жидкости
         :param v_s: скорость проскальзывания
-        :param p_g: плотность газа
+        :param rho_gas: плотность газа
         :param oil_density: плотность
         :param sigma_l: толщина пленки
         :param par: обозначение класса Parametrs
@@ -60,7 +61,7 @@ class Ansari:
                 * 4 - кольцевой;
         """
         sg1 = 0.25 * v_s + 0.333 * v_sl
-        sg4 = 3.1 * (9.81 * sigma_l * (oil_density - p_g) / p_g ** 2) ** 1 / 4
+        sg4 = 3.1 * (9.81 * sigma_l * (oil_density - rho_gas) / rho_gas ** 2) ** 1 / 4
 
         v_sg1 = par.v_pr()
         v_ls1 = par.vl_pr()
@@ -103,7 +104,7 @@ class Ansari:
         grad_puz = funct_gpuz + funct_tpuz
         return grad_puz
 
-    def prob(self, beta, p_ls, p_g, theta, f_ls, v_m, d):
+    def prob(self, beta, p_ls, rho_gas, theta, f_ls, v_m, d):
         """
         расчет градиента давления для пробкового режима
 
@@ -111,14 +112,14 @@ class Ansari:
         ----------
         :param beta: соотношение длины
         :param p_ls: плотность
-        :param p_g: плотность газа
+        :param rho_gas: плотность газа
         :param theta: угол наклона трубы
         :param f_ls: сила трения
         :param d: коэффициент
         :param v_m: скорость смеси
         """
 
-        funct_gpr = ((1 - beta) * p_ls + beta * p_g) * 9.81 * np.sin(theta)  # гравитационная составляющая
+        funct_gpr = ((1 - beta) * p_ls + beta * rho_gas) * 9.81 * np.sin(theta)  # гравитационная составляющая
         funct_tpr = f_ls * p_ls * v_m ** 2 / 2 * d * (1 - beta)  # составляющая по трению
         grad_prob = funct_gpr + funct_tpr
         return grad_prob
@@ -165,16 +166,16 @@ class Ansari:
         grad_kol = funct_gkol + funct_tkol
         return grad_kol
 
-    def grad(self, g_l, g_g, a_p, lambda_l, m_g, mus, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, f_sc, delta,
-             oil_density):
-        self.calc_params(g_l, a_p, g_g, lambda_l, m_g, mus, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, theta,
-                         p_c, sigma_l, f_sc, delta, d, oil_density)
+    def grad(self, q_l, q_g, a_p, lambda_l, m_g, mus, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, f_sc, delta,
+             oil_density, rho_gas):
+        self.calc_params(q_l, a_p, q_g, lambda_l, m_g, mus, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, theta,
+                         p_c, sigma_l, f_sc, delta, d, oil_density, rho_gas)
 
-        fp = self.calc_fp(self.v_sl, self.v_s, self.sigma_l, self.oil_density, self.p_g, self.par)
+        fp = self.calc_fp(self.v_sl, self.v_s, self.sigma_l, self.oil_density, self.rho_gas, self.par)
         if fp == 1:
             gr = self.puz(self.p_tr, self.theta, self.f_tr, self.v_tr, self.d)
         if fp == 2:
-            gr = self.prob(self.beta, self.p_ls, self.p_g, self.theta, self.f_ls, self.v_m, self.d)
+            gr = self.prob(self.beta, self.p_ls, self.rho_gas, self.theta, self.f_ls, self.v_m, self.d)
         if fp == 3:
             gr = self.muz(self.p_tr, self.theta, self.f_tr, self.v_tr, self.d)
         if fp == 4:
@@ -182,6 +183,7 @@ class Ansari:
         return gr
 
 
+# свойства
 def calc_rs(p: float, t: float, gamma_oil: float, gamma_gas: float) -> float:
     """
     Метод расчета газосодержания по корреляции Standing
@@ -201,6 +203,21 @@ def calc_rs(p: float, t: float, gamma_oil: float, gamma_gas: float) -> float:
     yg = 1.225 + 0.00168 * t - 1.76875 / gamma_oil
     rs = gamma_gas * (1.924 * 10 ** (-6) * p / 10 ** yg) ** 1.205
     return rs
+
+
+def calc_r_sw(p, t):
+    """
+    Метод расчета газосодержания воды
+
+    :param p: давление
+    :param t: температура
+    :return: газосодержание воды
+    """
+    A = 2.12 + 3.45 * 10 ** (-3) * (1.8 * t + 32) - 3.59 * 10 ** (-5) * (1.8 * t + 32) ** 2
+    B = 0.0107 - 5.26 * 10 ** (-5) * (1.8 * t + 32) + 1.48 * 10 ** (-7) * (1.8 * t + 32) ** 2
+    C = 8.75 * 10 ** (-7) + 3.9 * 10 ** (-9) * (1.8 * t + 32) - 1.02 * 10 ** (-11) * (1.8 * t + 32) ** 2
+    r_sw = A + 14.7 * B * p + 216 * C * p ** 2
+    return r_sw
 
 
 def calc_bo_st(rs: float, gamma_oil: float, gamma_gas: float, t: float) -> float:
@@ -278,6 +295,106 @@ def calc_oil_density(rs, bo, gamma_oil, gamma_gas):
     return oil_density
 
 
+def pseudocritical_pressure(gamma_gas: float) -> float:
+    """
+    Метод расчета псевдокритического давления по корреляции Standing
+
+    Parameters
+    ----------
+    :param gamma_gas: относительная плотность газа, (доли),
+    (относительно в-ха с плотностью 1.2217 кг/м3 при с.у.)
+
+    :return: псевдокритическое давление, (Па)
+    -------
+    """
+    pc_p_standing = (
+        4667750.68747498
+        + 103421.3593975254 * gamma_gas
+        - 258553.39849381353 * (gamma_gas ** 2)
+    )
+    return pc_p_standing
+
+def pseudocritical_temperature(gamma_gas: float) -> float:
+    """
+    Метод расчета псевдокритической температуры по корреляции Standing
+
+    Parameters
+    ----------
+    :param gamma_gas: относительная плотность газа, (доли),
+    (относительно в-ха с плотностью 1.2217 кг/м3 при с.у.)
+
+    :return: псевдокритическая температура, (К)
+    -------
+    """
+    pc_t_standing = (
+        93.33333333333333
+        + 180.55555555555554 * gamma_gas
+        - 6.944444444444445 * (gamma_gas ** 2)
+    )
+    return pc_t_standing
+
+def __dak_func(z, ppr, tpr):
+    ropr = 0.27 * (ppr / (z * tpr))
+    func = (
+        -z
+        + 1
+        + (
+            0.3265
+            - 1.0700 / tpr
+            - 0.5339 / tpr ** 3
+            + 0.01569 / tpr ** 4
+            - 0.05165 / tpr ** 5
+        )
+        * ropr
+        + (0.5475 - 0.7361 / tpr + 0.1844 / tpr ** 2) * ropr ** 2
+        - 0.1056 * (-0.7361 / tpr + 0.1844 / tpr ** 2) * ropr ** 5
+        + 0.6134
+        * (1 + 0.7210 * ropr ** 2)
+        * (ropr ** 2 / tpr ** 3)
+        * np.exp(-0.7210 * ropr ** 2)
+    )
+    return func
+
+
+def calc_gas_fvf(p: float, t: float, gamma_gas, **kwargs) -> float:
+    """
+    Метод расчета объемного коэффициента газа,
+    в котором в зависимости от указанного типа корреляции вызывается \
+    соответствующий метод расчета
+
+    Parameters
+    ----------
+    :param p: давление, Па
+    :param t: температура, К
+    :param z: коэффициент сжимаемости газа, 1/Па
+
+    :return: объемный коэффициент газа, м3/м3
+    -------
+    """
+    pc = pseudocritical_pressure(gamma_gas)
+    tc = pseudocritical_temperature(gamma_gas)
+
+    ppr = p / pc
+    tpr = t / tc
+    z = newton(__dak_func, x0=1, args=(ppr, tpr))
+
+    bg = t * z * 350.958 / p
+    return bg
+
+
+def calc_rho_gas(rs, bg, gamma_oil, gamma_gas):
+    """
+    Метод расчета плотности газа
+    :param rs: газосодержание
+    :param bg: объемный коэфициент газа
+    :param gamma_oil: относительная плотность нефти
+    :param gamma_gas: относительная плотность газа
+    :return: плотность газа
+    """
+    rho_gas = (1000 * (gamma_oil + (rs * gamma_gas * 1.2217)/1000))/bg
+    return rho_gas
+
+
 # Вязкость
 def __oil_liveviscosity_beggs(oil_deadvisc, rs):
     """
@@ -326,35 +443,64 @@ def calc_viscosity(gamma_oil, gamma_gas, t, p):
     return mus
 
 
-def gradient(h, pt, g_l, a_p, g_g, lambda_l, m_g, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, f_sc,
+def calc_debit_qo(q_lo, f_w, bo):
+    q_oil = q_lo * (1 - f_w) * bo
+    return q_oil
+
+
+def calc_debit_qw(q_lo, f_w, bw):
+    q_water = q_lo * f_w * bw
+    return q_water
+
+
+def calc_debit_qg(q_oil, r_sb, rs, q_water, r_sw, bg):
+    q_g = (q_oil * r_sb - q_oil * rs - q_water * r_sw) * bg
+    return q_g
+
+
+def gradient(h, pt, a_p, lambda_l, m_g, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, f_sc,
              delta, gamma_oil, gamma_gas):
     p = pt[0]
     t = pt[1]
+    # газосодержание
     rs = calc_rs(p, t, gamma_oil, gamma_gas)
+    r_sw = calc_r_sw(p, t)
+    # объемный коэфициент нефти
     bo = calc_bo_st(rs, gamma_gas, gamma_oil, t)
     oil_density = calc_oil_density(rs, bo, gamma_oil, gamma_gas)
+    # вязкость
     mus = calc_viscosity(gamma_oil, gamma_gas, t, p)
-    ans = Ansari(d, theta, p_tr, f_tr, p_ls, f_ls, p_c, oil_density, p_g, sigma_l, beta, v_s)
-    dp = ans.grad(g_l, a_p, g_g, lambda_l, m_g, mus, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, f_sc, delta,
-                  oil_density)
+    # объемный коэфициент газа
+    bg = calc_gas_fvf(p, t, gamma_gas)
+    # плотность газа
+    rho_gas = calc_rho_gas(rs, bg, gamma_oil, gamma_gas)
+    # дебиты
+    q_oil = calc_debit_qo(q_lo, f_w, bo)
+    q_water = calc_debit_qw(q_lo, f_w, bw)
+    q_l = q_oil + q_water
+    q_g = calc_debit_qg(q_oil, r_sb, rs, q_water, r_sw, bg)
+    ans = Ansari(d, theta, p_tr, f_tr, p_ls, f_ls, p_c, oil_density, rho_gas, sigma_l, beta, v_s)
+    dp = ans.grad(q_l, a_p, q_g, lambda_l, m_g, mus, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, f_sc, delta,
+                  oil_density, rho_gas)
     dt = 20 + 0.03 * h
     return dp, dt
 
 
+r_sb = 90
+f_w = 1 # обводненность
+bw = 1
+q_lo = 100
+q_g0 = 100
 sigma_l = 1.5
 gamma_gas = 0.7
 gamma_oil = 0.8
-pb = 1000  # давление насыщения
+pb = 100  # давление насыщения
 bob = 1  # объемный коэф при давлении насыщения
-compr = 9.87 * 10 ** (-6)
-g_g = 100
-g_l = 150
+compr = 9.87 * 10 ** (-10)
 d = 60
-t = 30
+t = 353.15
 a_p = 20
-p_g = 100
 v_s = 50
-p_l = 100
 beta = 10
 h_lls = 1
 m_ls = 1
@@ -365,14 +511,13 @@ h_ltb = 1
 v_lls = 1
 fi = 100
 p_c = 10
-p = 1
+p = 101325
 p_tr = 1
 f_tr = 2
 p_ls = 1
 f_ls = 2
 lambda_l = 1
 m_g = 1
-m_l = 1
 c_0 = 1
 f_sc = 1
 delta = 1
@@ -380,12 +525,9 @@ g = 9.8
 h = 2000
 pt = 1
 result = solve_ivp(gradient, t_span=[0, 2000],
-                   y0=[101.325, 20], args=(g_l, a_p, g_g, lambda_l, m_g, h_lls, m_ls, v_gtb, v_gls, v_ltb,
-                                             h_ltb, v_lls, c_0, f_sc, delta, gamma_oil, gamma_gas))
+                   y0=[101325, 20+273], args=( a_p, lambda_l, m_g, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0,
+                                               f_sc, delta, gamma_oil, gamma_gas))
 
 plt.plot(result.t, result.y[0])
 plt.show()
 print(result)
-
-
-
