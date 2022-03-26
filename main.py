@@ -24,15 +24,15 @@ class Ansari:
         self.beta = beta
         self.v_s = v_s
 
-    def dan(self, d, rho_l, lambda_l, rho_gas, m_g, mus, q_l, a_p, v_s, beta, h_lls, f_ls, m_ls, v_gtb, v_gls, v_ltb,
+    def dan(self, d, rho_l, lambda_l, rho_gas, m_g, m_l, q_l, a_p, v_s, beta, h_lls, f_ls, m_ls, v_gtb, v_gls, v_ltb,
             h_ltb, v_lls, c_0, theta, p_c, sigma_l, f_sc, q_g, delta):
-        par = Parametrs(d, rho_l, lambda_l, rho_gas, m_g, mus, q_l, a_p, v_s, beta, h_lls, f_ls, m_ls, v_gtb, v_gls,
+        par = Parametrs(d, rho_l, lambda_l, rho_gas, m_g, m_l, q_l, a_p, v_s, beta, h_lls, f_ls, m_ls, v_gtb, v_gls,
                         v_ltb, h_ltb, v_lls, c_0, theta, p_c, sigma_l, f_sc, q_g, delta)
         return par
 
-    def calc_params(self, q_l, a_p, q_g, lambda_l, m_g, mus, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, theta,
+    def calc_params(self, q_l, a_p, q_g, lambda_l, m_g, m_l, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, theta,
                     p_c, sigma_l, f_sc, delta, d, rho_l, rho_gas):
-        self.par = self.dan(d, rho_l, lambda_l, rho_gas, m_g, mus, q_l, a_p, v_s, beta, h_lls, f_ls, m_ls, v_gtb,
+        self.par = self.dan(d, rho_l, lambda_l, rho_gas, m_g, m_l, q_l, a_p, v_s, beta, h_lls, f_ls, m_ls, v_gtb,
                             v_gls, v_ltb, h_ltb, v_lls, c_0, theta, p_c, sigma_l, f_sc, q_g, delta)
 
         self.v_sl = q_l/a_p
@@ -50,7 +50,7 @@ class Ansari:
         :param v_sl: скорость жидкости
         :param v_s: скорость проскальзывания
         :param rho_gas: плотность газа
-        :param oil_density: плотность
+        :param rho_l: плотность жидкости
         :param sigma_l: толщина пленки
         :param par: обозначение класса Parametrs
         :return: номер режима потока, безразмерн.
@@ -166,9 +166,9 @@ class Ansari:
         grad_kol = funct_gkol + funct_tkol
         return grad_kol
 
-    def grad(self, q_l, q_g, a_p, lambda_l, m_g, mus, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, f_sc, delta,
+    def grad(self, q_l, q_g, a_p, lambda_l, m_g, m_l, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, f_sc, delta,
              rho_l, rho_gas):
-        self.calc_params(q_l, a_p, q_g, lambda_l, m_g, mus, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, theta,
+        self.calc_params(q_l, a_p, q_g, lambda_l, m_g, m_l, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, theta,
                          p_c, sigma_l, f_sc, delta, d, rho_l, rho_gas)
 
         fp = self.calc_fp(self.v_sl, self.v_s, self.sigma_l, self.rho_l, self.rho_gas, self.par)
@@ -459,7 +459,7 @@ def calc_debit_qg(q_oil, r_sb, rs, q_water, r_sw, bg):
 
 
 def gradient(h, pt, a_p, lambda_l, m_g, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, f_sc, delta, gamma_oil,
-             gamma_gas, f_w, rho_w):
+             gamma_gas, f_w, rho_w, m_w):
     p = pt[0]
     t = pt[1]
     # газосодержание
@@ -470,6 +470,7 @@ def gradient(h, pt, a_p, lambda_l, m_g, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb,
     oil_density = calc_oil_density(rs, bo, gamma_oil, gamma_gas)
     # вязкость
     mus = calc_viscosity(gamma_oil, gamma_gas, t, p)
+    m_l = mus * (1 - f_w) + m_w * f_w
     # объемный коэфициент газа
     bg = calc_gas_fvf(p, t, gamma_gas)
     # плотность
@@ -481,12 +482,13 @@ def gradient(h, pt, a_p, lambda_l, m_g, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb,
     q_l = q_oil + q_water
     q_g = calc_debit_qg(q_oil, r_sb, rs, q_water, r_sw, bg)
     ans = Ansari(d, theta, p_tr, f_tr, p_ls, f_ls, p_c, rho_l, rho_gas, sigma_l, beta, v_s)
-    dp = ans.grad(q_l, a_p, q_g, lambda_l, m_g, mus, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, f_sc, delta,
+    dp = ans.grad(q_l, a_p, q_g, lambda_l, m_g, m_l, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, f_sc, delta,
                   rho_l, rho_gas)
     dt = 20 + 0.03 * h
     return dp, dt
 
 
+m_w = 1
 rho_w = 1000
 r_sb = 90
 f_w = 1 # обводненность
@@ -528,7 +530,7 @@ h = 2000
 pt = 1
 result = solve_ivp(gradient, t_span=[0, 2000],
                    y0=[101325, 20+273], args=(a_p, lambda_l, m_g, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0,
-                                              f_sc, delta, gamma_oil, gamma_gas, f_w, rho_w))
+                                              f_sc, delta, gamma_oil, gamma_gas, f_w, rho_w, m_w))
 
 plt.plot(result.t, result.y[0])
 plt.show()
