@@ -10,30 +10,19 @@ theta: int = 90
 
 
 class Ansari:
-    def __init__(self, d, theta, p_tr, f_tr, p_ls, f_ls, p_c, rho_l, rho_gas, sigma_l, beta, v_s):
-        self.d = d
-        self.theta = theta
+    def __init__(self, p_tr, f_tr, p_ls):
         self.p_tr = p_tr
         self.f_tr = f_tr
         self.p_ls = p_ls
-        self.f_ls = f_ls
-        self.p_c = p_c
-        self.rho_l = rho_l
-        self.rho_gas = rho_gas
-        self.sigma_l = sigma_l
-        self.beta = beta
-        self.v_s = v_s
 
-    def dan(self, d, rho_l, lambda_l, rho_gas, m_g, m_l, q_l, a_p, v_s, beta, h_lls, f_ls, m_ls, v_gtb, v_gls, v_ltb,
-            h_ltb, v_lls, c_0, theta, p_c, sigma_l, f_sc, q_g, delta):
-        par = Parametrs(d, rho_l, lambda_l, rho_gas, m_g, m_l, q_l, a_p, v_s, beta, h_lls, f_ls, m_ls, v_gtb, v_gls,
-                        v_ltb, h_ltb, v_lls, c_0, theta, p_c, sigma_l, f_sc, q_g, delta)
+    def dan(self, d, rho_l, lambda_l, rho_gas, m_g, m_l, a_p, v_s, beta, f_ls, m_ls, theta, p_c, sigma_l, f_sc, delta):
+        par = Parametrs(d, rho_l, lambda_l, rho_gas, m_g, m_l, a_p, v_s, beta, f_ls, m_ls, theta, p_c, sigma_l, f_sc,
+                        delta)
         return par
 
-    def calc_params(self, q_l, a_p, q_g, lambda_l, m_g, m_l, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, theta,
-                    p_c, sigma_l, f_sc, delta, d, rho_l, rho_gas):
-        self.par = self.dan(d, rho_l, lambda_l, rho_gas, m_g, m_l, q_l, a_p, v_s, beta, h_lls, f_ls, m_ls, v_gtb,
-                            v_gls, v_ltb, h_ltb, v_lls, c_0, theta, p_c, sigma_l, f_sc, q_g, delta)
+    def calc_params(self, q_l, a_p, q_g, lambda_l, m_g, m_l, m_ls, theta, p_c, sigma_l, f_sc, delta, d, rho_l, rho_gas):
+        self.par = self.dan(d, rho_l, lambda_l, rho_gas, m_g, m_l, a_p, v_s, beta, f_ls, m_ls, theta, p_c, sigma_l,
+                            f_sc, delta)
 
         self.v_sl = q_l/a_p
 
@@ -63,8 +52,8 @@ class Ansari:
         sg1 = 0.25 * v_s + 0.333 * v_sl
         sg4 = 3.1 * (9.81 * sigma_l * (rho_l - rho_gas) / rho_gas ** 2) ** 1 / 4
 
-        v_sg1 = par.v_pr()
-        v_ls1 = par.vl_pr()
+        v_sg1 = par.v_pr(v_gtb, h_ltb, v_gls)
+        v_ls1 = par.vl_pr(v_lls, h_lls, v_ltb, h_ltb)
         v_m = par.vm_pr(v_sg1, v_ls1)
         v__sg = par.v_mus(v_sl)
         v_sg3 = par.v_kol()
@@ -166,20 +155,20 @@ class Ansari:
         grad_kol = funct_gkol + funct_tkol
         return grad_kol
 
-    def grad(self, q_l, q_g, a_p, lambda_l, m_g, m_l, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, f_sc, delta,
-             rho_l, rho_gas):
-        self.calc_params(q_l, a_p, q_g, lambda_l, m_g, m_l, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, theta,
-                         p_c, sigma_l, f_sc, delta, d, rho_l, rho_gas)
+    def grad(self, q_l, q_g, a_p, lambda_l, m_g, m_l, m_ls, f_sc, delta, rho_l, rho_gas):
+        self.calc_params(q_l, a_p, q_g, lambda_l, m_g, m_l, m_ls, theta, p_c, sigma_l, f_sc, delta, d, rho_l, rho_gas)
+        self.par = self.dan(d, rho_l, lambda_l, rho_gas, m_g, m_l, a_p, v_s, beta, f_ls, m_ls, theta, p_c, sigma_l,
+                            f_sc, delta)
 
-        fp = self.calc_fp(self.v_sl, self.v_s, self.sigma_l, self.rho_l, self.rho_gas, self.par)
+        fp = self.calc_fp(self.v_sl, v_s, sigma_l, rho_l, rho_gas, self.par)
         if fp == 1:
-            gr = self.puz(self.p_tr, self.theta, self.f_tr, self.v_tr, self.d)
+            gr = self.puz(self.p_tr, theta, self.f_tr, self.v_tr, d)
         if fp == 2:
-            gr = self.prob(self.beta, self.p_ls, self.rho_gas, self.theta, self.f_ls, self.v_m, self.d)
+            gr = self.prob(beta, self.p_ls, rho_gas, theta, f_ls, self.v_m, d)
         if fp == 3:
-            gr = self.muz(self.p_tr, self.theta, self.f_tr, self.v_tr, self.d)
+            gr = self.muz(self.p_tr, theta, self.f_tr, self.v_tr, d)
         if fp == 4:
-            gr = self.kol(self.p_c, self.theta, self.par)
+            gr = self.kol(p_c, theta, self.par)
         return gr
 
 
@@ -314,6 +303,7 @@ def pseudocritical_pressure(gamma_gas: float) -> float:
     )
     return pc_p_standing
 
+
 def pseudocritical_temperature(gamma_gas: float) -> float:
     """
     Метод расчета псевдокритической температуры по корреляции Standing
@@ -332,6 +322,7 @@ def pseudocritical_temperature(gamma_gas: float) -> float:
         - 6.944444444444445 * (gamma_gas ** 2)
     )
     return pc_t_standing
+
 
 def __dak_func(z, ppr, tpr):
     ropr = 0.27 * (ppr / (z * tpr))
@@ -458,8 +449,7 @@ def calc_debit_qg(q_oil, r_sb, rs, q_water, r_sw, bg):
     return q_g
 
 
-def gradient(h, pt, a_p, lambda_l, m_g, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, f_sc, delta, gamma_oil,
-             gamma_gas, f_w, rho_w, m_w):
+def gradient(h, pt, a_p, lambda_l, m_g, m_ls, f_sc, delta, gamma_oil, gamma_gas, f_w, rho_w, m_w):
     p = pt[0]
     t = pt[1]
     # газосодержание
@@ -481,9 +471,8 @@ def gradient(h, pt, a_p, lambda_l, m_g, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb,
     q_water = calc_debit_qw(q_lo, f_w, bw)
     q_l = q_oil + q_water
     q_g = calc_debit_qg(q_oil, r_sb, rs, q_water, r_sw, bg)
-    ans = Ansari(d, theta, p_tr, f_tr, p_ls, f_ls, p_c, rho_l, rho_gas, sigma_l, beta, v_s)
-    dp = ans.grad(q_l, a_p, q_g, lambda_l, m_g, m_l, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0, f_sc, delta,
-                  rho_l, rho_gas)
+    ans = Ansari(p_tr, f_tr, p_ls)
+    dp = ans.grad(q_l, q_g, a_p, lambda_l, m_g, m_l, m_ls, f_sc, delta, rho_l, rho_gas)
     dt = 20 + 0.03 * h
     return dp, dt
 
@@ -491,7 +480,7 @@ def gradient(h, pt, a_p, lambda_l, m_g, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb,
 m_w = 1
 rho_w = 1000
 r_sb = 90
-f_w = 1 # обводненность
+f_w = 1  # обводненность
 bw = 1
 q_lo = 100
 q_g0 = 100
@@ -528,8 +517,8 @@ delta = 1
 g = 9.8
 h = 2000
 result = solve_ivp(gradient, t_span=[0, 2000],
-                   y0=[101325, 20+273], args=(a_p, lambda_l, m_g, h_lls, m_ls, v_gtb, v_gls, v_ltb, h_ltb, v_lls, c_0,
-                                              f_sc, delta, gamma_oil, gamma_gas, f_w, rho_w, m_w))
+                   y0=[101325, 20+273], args=(a_p, lambda_l, m_g, m_ls, f_sc, delta, gamma_oil, gamma_gas, f_w, rho_w,
+                                              m_w))
 
 plt.plot(result.t, result.y[0])
 plt.show()
