@@ -1,5 +1,6 @@
 import numpy as np
 import math as mh
+from main import Ansari
 
 
 class Parametrs:
@@ -31,6 +32,18 @@ class Parametrs:
         self.f_sc = f_sc
         self.q_g = q_g
         self.delta = delta
+
+    def sp(self, d, theta, p_tr, f_tr, p_ls, f_ls, p_c, rho_l, rho_gas, sigma_l, beta, v_s):
+        fun = Ansari(d, theta, p_tr, f_tr, p_ls, f_ls, p_c, rho_l, rho_gas, sigma_l, beta, v_s)
+        return fun
+
+    def cakc_d(self, d, theta, p_tr, f_tr, p_ls, f_ls, p_c, rho_l, rho_gas, sigma_l, beta, v_s, q_lo, f_w, bo, bw):
+        self.fun = self.sp(d, theta, p_tr, f_tr, p_ls, f_ls, p_c, rho_l, rho_gas, sigma_l, beta, v_s)
+
+        q_oil = fun.calc_debit_qo(q_lo, f_w, bo)
+        q_water = fun.calc_debit_qw(q_lo, f_w, bw)
+        q_l = q_oil + q_water
+        q_g = fun.calc_debit_gg
 
     def pp_puz(self):
         p_tr = self.rho_l * self.lambda_l + self.rho_gas * (1 - self.lambda_l)
