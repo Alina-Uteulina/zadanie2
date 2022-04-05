@@ -453,25 +453,24 @@ def gradient(h, pt, a_p, lambda_l, m_g, m_ls, f_sc, delta, gamma_oil, gamma_gas,
     p = pt[0]
     t = pt[1]
     # газосодержание
-    rs = calc_rs(p, t, gamma_oil, gamma_gas)
-    r_sw = calc_r_sw(p, t)
+    rs = Parametrs.calc_rs(gamma_gas, gamma_oil, t, p)
+    r_sw = Parametrs.calc_rsw(p, t)
     # объемный коэфициент нефти
-    bo = calc_bo_st(rs, gamma_gas, gamma_oil, t)
+    bo = Parametrs.calc_bo(rs, gamma_gas, gamma_oil, t)
     oil_density = calc_oil_density(rs, bo, gamma_oil, gamma_gas)
     # вязкость
     mus = calc_viscosity(gamma_oil, gamma_gas, t, p)
     m_l = mus * (1 - f_w) + m_w * f_w
     # объемный коэфициент газа
-    bg = calc_gas_fvf(p, t, gamma_gas)
-    # плотность
-    rho_gas = calc_rho_gas(rs, bg, gamma_oil, gamma_gas)
-    rho_l = oil_density * (1 - f_w) + rho_w * f_w
+    bg = Parametrs.calc_bg(p, t, gamma_gas)
     # дебиты
-    q_oil = calc_debit_qo(q_lo, f_w, bo)
-    q_water = calc_debit_qw(q_lo, f_w, bw)
+    q_oil = Parametrs.calc_qo(q_lo, f_w, bo)
+    q_water = Parametrs.calc_qw(q_lo, f_w, bw)
     q_l = q_oil + q_water
-    q_g = calc_debit_qg(q_oil, r_sb, rs, q_water, r_sw, bg)
+    q_g = Parametrs.calc_q_g(q_oil, r_sb, rs, q_water, r_sw, bg)
     ans = Ansari(p_tr, f_tr, p_ls)
+    rho_gas = Parametrs.calc_rho(rs, bg, gamma_oil, gamma_gas)
+    rho_l = Parametrs.calc_rho_l(oil_density, f_w, rho_w)
     dp = ans.grad(q_l, q_g, a_p, lambda_l, m_g, m_l, m_ls, f_sc, delta, rho_l, rho_gas)
     dt = 20 + 0.03 * h
     return dp, dt
