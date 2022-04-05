@@ -7,6 +7,8 @@ from main import calc_rho_gas
 from main import calc_oil_density
 from main import calc_bo_st
 from main import calc_rs
+from main import calc_gas_fvf
+from main import calc_r_sw
 C_0: float = 1.2
 C_1: float = 1.15
 
@@ -32,21 +34,60 @@ class Parametrs:
         self.f_sc = f_sc
         self.delta = delta
 
-    def calc_d(self, q_lo, f_w, bw, gamma_gas, gamma_oil, t, p):
+    @staticmethod
+    def calc_rs(gamma_gas, gamma_oil, t, p):
         rs = calc_rs(p, t, gamma_oil, gamma_gas)
-        bo = calc_bo_st(rs, gamma_gas, gamma_oil, t)
-        q_oil = calc_debit_qo(q_lo, f_w, bo)
-        q_water = calc_debit_qw(q_lo, f_w, bw)
-        q_l = q_oil + q_water
-        q_g = calc_debit_qg
-        return q_l, q_g
+        return rs
 
-    def p(self, rs, bg, gamma_oil, gamma_gas, f_w, rho_w, t):
-        rho_gas = calc_rho_gas(rs, bg, gamma_oil, gamma_gas)
+    @staticmethod
+    def calc_bo(rs, gamma_gas, gamma_oil, t):
         bo = calc_bo_st(rs, gamma_gas, gamma_oil, t)
+        return bo
+
+    @staticmethod
+    def calc_qo(q_lo, f_w, bo):
+        q_oil = calc_debit_qo(q_lo, f_w, bo)
+        return q_oil
+
+    @staticmethod
+    def calc_qw(q_lo, f_w, bw):
+        q_water = calc_debit_qw(q_lo, f_w, bw)
+        return q_water
+
+    @staticmethod
+    def calc_q_l(q_oil, q_water):
+        q_l = q_oil + q_water
+        return q_l
+
+    @staticmethod
+    def calc_bg(p, t, gamma_gas):
+        bg = calc_gas_fvf(p, t, gamma_gas)
+        return bg
+
+    @staticmethod
+    def calc_rsw(p, t):
+        r_sw = calc_r_sw(p, t)
+        return r_sw
+
+    @staticmethod
+    def calc_q_g(q_oil, r_sb, rs, q_water, r_sw, bg):
+        q_g = calc_debit_qg(q_oil, r_sb, rs, q_water, r_sw, bg)
+        return q_g
+
+    @staticmethod
+    def calc_rho(rs, bg, gamma_oil, gamma_gas):
+        rho_gas = calc_rho_gas(rs, bg, gamma_oil, gamma_gas)
+        return rho_gas
+
+    @staticmethod
+    def calc_oil(rs, bo, gamma_oil, gamma_gas):
         oil_density = calc_oil_density(rs, bo, gamma_oil, gamma_gas)
+        return oil_density
+
+    @staticmethod
+    def calc_rho_l(oil_density, f_w, rho_w):
         rho_l = oil_density * (1 - f_w) + rho_w * f_w
-        return rho_gas, rho_l
+        return rho_l
 
     def pp_puz(self, rho_gas, rho_l):
         p_tr = rho_l * self.lambda_l + rho_gas * (1 - self.lambda_l)
