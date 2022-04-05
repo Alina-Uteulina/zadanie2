@@ -1,6 +1,5 @@
 import numpy as np
 import math as mh
-from main import Ansari
 from main import calc_debit_qo
 from main import calc_debit_qw
 from main import calc_debit_qg
@@ -32,10 +31,6 @@ class Parametrs:
         self.sigma_l = sigma_l
         self.f_sc = f_sc
         self.delta = delta
-
-    def sp(self, p_tr, f_tr, p_ls):
-        fun = Ansari(p_tr, f_tr, p_ls)
-        return fun
 
     def calc_d(self, q_lo, f_w, bw, gamma_gas, gamma_oil, t, p):
         rs = calc_rs(p, t, gamma_oil, gamma_gas)
