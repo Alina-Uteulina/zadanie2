@@ -1,26 +1,16 @@
 import numpy as np
 import math as mh
-from main import calc_debit_qo
-from main import calc_debit_qw
-from main import calc_debit_qg
-from main import calc_rho_gas
-from main import calc_oil_density
-from main import calc_bo_st
-from main import calc_rs
-from main import calc_gas_fvf
-from main import calc_r_sw
+from scipy.optimize import newton
 C_0: float = 1.2
 C_1: float = 1.15
+t0 = 20 + 273
 
 
 class Parametrs:
 
-    def __init__(self, d, rho_l, lambda_l, rho_gas, m_g, m_l, a_p, v_s, beta, f_ls, m_ls, theta, p_c, sigma_l, f_sc,
-                 delta):
+    def __init__(self, d, lambda_l, m_g, m_l, a_p, v_s, beta, f_ls, m_ls, theta, p_c, sigma_l, f_sc, delta):
         self.d = d
-        self.rho_l = rho_l
         self.lambda_l = lambda_l
-        self.rho_gas = rho_gas
         self.m_g = m_g
         self.m_l = m_l
         self.a_p = a_p
@@ -35,54 +25,275 @@ class Parametrs:
         self.delta = delta
 
     @staticmethod
-    def calc_rs(gamma_gas, gamma_oil, t, p):
-        rs = calc_rs(p, t, gamma_oil, gamma_gas)
+    def calc_rs(p: float, gamma_oil: float, gamma_gas: float) -> float:
+        """
+        Метод расчета газосодержания по корреляции Standing
+
+            Parameters
+        ----------
+        :param p: давление, (Па)
+        :param gamma_oil: относительная плотность нефти, (доли),
+        (относительно воды с плотностью 1000 кг/м3 при с.у.)
+        :param gamma_gas: относительная плотность газа, (доли),
+        (относительно в-ха с плотностью 1.2217 кг/м3 при с.у.)
+
+        :return: газосодержание, (м3/м3)
+        -------
+        """
+        yg = 1.225 + 0.00168 * t0 - 1.76875 / gamma_oil
+        rs = gamma_gas * (1.924 * 10 ** (-6) * p / 10 ** yg) ** 1.205
         return rs
 
     @staticmethod
-    def calc_bo(rs, gamma_gas, gamma_oil, t):
-        bo = calc_bo_st(rs, gamma_gas, gamma_oil, t)
-        return bo
+    def calc_r_sw(p):
+        """
+        Метод расчета газосодержания воды
 
-    @staticmethod
-    def calc_qo(q_lo, f_w, bo):
-        q_oil = calc_debit_qo(q_lo, f_w, bo)
-        return q_oil
-
-    @staticmethod
-    def calc_qw(q_lo, f_w, bw):
-        q_water = calc_debit_qw(q_lo, f_w, bw)
-        return q_water
-
-    @staticmethod
-    def calc_q_l(q_oil, q_water):
-        q_l = q_oil + q_water
-        return q_l
-
-    @staticmethod
-    def calc_bg(p, t, gamma_gas):
-        bg = calc_gas_fvf(p, t, gamma_gas)
-        return bg
-
-    @staticmethod
-    def calc_rsw(p, t):
-        r_sw = calc_r_sw(p, t)
+        :param p: давление
+        :return: газосодержание воды
+        """
+        A = 2.12 + 3.45 * 10 ** (-3) * (1.8 * t0 + 32) - 3.59 * 10 ** (-5) * (1.8 * t0 + 32) ** 2
+        B = 0.0107 - 5.26 * 10 ** (-5) * (1.8 * t0 + 32) + 1.48 * 10 ** (-7) * (1.8 * t0 + 32) ** 2
+        C = 8.75 * 10 ** (-7) + 3.9 * 10 ** (-9) * (1.8 * t0 + 32) - 1.02 * 10 ** (-11) * (1.8 * t0 + 32) ** 2
+        r_sw = A + 14.7 * B * p + 216 * C * p ** 2
         return r_sw
 
     @staticmethod
-    def calc_q_g(q_oil, r_sb, rs, q_water, r_sw, bg):
-        q_g = calc_debit_qg(q_oil, r_sb, rs, q_water, r_sw, bg)
-        return q_g
+    def calc_bo_st(rs: float, gamma_oil: float, gamma_gas: float) -> float:
+        """
+        Метод расчета объемного коэффициента нефти по корреляции Standing
+
+        Parameters
+        ----------
+        :param rs: газосодержание,  (м3/м3)
+        :param gamma_oil: относительная плотность нефти, (доли),
+        (относительно воды с плотностью 1000 кг/м3 при с.у.)
+        :param gamma_gas: относительная плотность газа, (доли),
+        (относительно в-ха с плотностью 1.2217 кг/м3 при с.
+
+        :return: объемный коэффициент нефти, (м3/м3)
+        -------
+        """
+        bo = 0.972 + 0.000147 * (5.614583333333334 * rs * (gamma_gas / gamma_oil) ** 0.5 +
+                                 2.25 * t0 - 574.5875) ** 1.175
+        return bo
 
     @staticmethod
-    def calc_rho(rs, bg, gamma_oil, gamma_gas):
-        rho_gas = calc_rho_gas(rs, bg, gamma_oil, gamma_gas)
+    def oil_bo_vb(p, compr, pb, bob):
+        """
+        Метод расчета объемного коэффициента нефти по корреляции Vasquez
+        при давлении выше давления насыщения
+
+        Parameters
+        ----------
+        :param p: давление, (Па)
+        :param compr: сжимаемость нефти, (1/Па)
+        :param pb: давление насыщения, (Па)
+        :param bob: объемный коэффициент при давлении насыщения, (безразм.)
+
+        :return: объемный коэффициент нефти, (м3/м3)
+        -------
+        """
+        oil_fvf_vasquez_above = bob * np.exp(compr * 145.03773773020924 * (pb - p))
+        return oil_fvf_vasquez_above
+
+    @staticmethod
+    def calc_bo(p, gamma_oil, gamma_gas, compr, pb):
+        if p <= pb:
+            rs = Parametrs.calc_rs(p, gamma_oil, gamma_gas)
+            bo = Parametrs.calc_bo_st(rs, gamma_gas, gamma_oil)
+            return bo
+
+        rsb = Parametrs.calc_rs(pb, gamma_oil, gamma_gas)
+        bob = Parametrs.calc_bo_st(rsb, gamma_gas, gamma_oil)
+
+        bo = Parametrs.oil_bo_vb(p, compr, pb, bob)
+        return bo
+
+    @staticmethod
+    def calc_oil_density(rs, bo, gamma_oil, gamma_gas):
+        """
+        Метод расчета плотности нефти, в котором в зависимости
+        от указанного типа корреляции вызывается \
+        соответствующий метод расчета
+
+        Parameters
+        ----------
+        :param rs: газосодержание, (м3/м3)
+        :param bo: объемный коэффициент нефти, (м3/м3)
+        :param gamma_oil: относительная плотность нефти, (доли),
+        (относительно воды с плотностью 1000 кг/м3 при с.у.)
+        :param gamma_gas: относительная плотность газа, (доли),
+        (относительно в-ха с плотностью 1.2217 кг/м3 при с.у.)
+
+        :return: плотность нефти, (кг/м3)
+        -------
+        """
+        oil_density = (1000 * gamma_oil + (rs * gamma_gas * 1.2217) / 1000) / bo
+        return oil_density
+
+    @staticmethod
+    def pseudocritical_pressure(gamma_gas: float) -> float:
+        """
+        Метод расчета псевдокритического давления по корреляции Standing
+
+        Parameters
+        ----------
+        :param gamma_gas: относительная плотность газа, (доли),
+        (относительно в-ха с плотностью 1.2217 кг/м3 при с.у.)
+
+        :return: псевдокритическое давление, (Па)
+        -------
+        """
+        pc_p_standing = (
+                4667750.68747498
+                + 103421.3593975254 * gamma_gas
+                - 258553.39849381353 * (gamma_gas ** 2)
+        )
+        return pc_p_standing
+
+    @staticmethod
+    def pseudocritical_temperature(gamma_gas: float) -> float:
+        """
+        Метод расчета псевдокритической температуры по корреляции Standing
+
+        Parameters
+        ----------
+        :param gamma_gas: относительная плотность газа, (доли),
+        (относительно в-ха с плотностью 1.2217 кг/м3 при с.у.)
+
+        :return: псевдокритическая температура, (К)
+        -------
+        """
+        pc_t_standing = (
+                93.33333333333333
+                + 180.55555555555554 * gamma_gas
+                - 6.944444444444445 * (gamma_gas ** 2)
+        )
+        return pc_t_standing
+
+    @staticmethod
+    def __dak_func(z, ppr, tpr):
+        ropr = 0.27 * (ppr / (z * tpr))
+        func = (
+                -z
+                + 1
+                + (
+                        0.3265
+                        - 1.0700 / tpr
+                        - 0.5339 / tpr ** 3
+                        + 0.01569 / tpr ** 4
+                        - 0.05165 / tpr ** 5
+                )
+                * ropr
+                + (0.5475 - 0.7361 / tpr + 0.1844 / tpr ** 2) * ropr ** 2
+                - 0.1056 * (-0.7361 / tpr + 0.1844 / tpr ** 2) * ropr ** 5
+                + 0.6134
+                * (1 + 0.7210 * ropr ** 2)
+                * (ropr ** 2 / tpr ** 3)
+                * np.exp(-0.7210 * ropr ** 2)
+        )
+        return func
+
+    @staticmethod
+    def calc_gas_fvf(p: float, gamma_gas, **kwargs) -> float:
+        """
+        Метод расчета объемного коэффициента газа,
+        в котором в зависимости от указанного типа корреляции вызывается \
+        соответствующий метод расчета
+
+        Parameters
+        ----------
+        :param p: давление, Па
+        :param z: коэффициент сжимаемости газа, 1/Па
+
+        :return: объемный коэффициент газа, м3/м3
+        -------
+        """
+        pc = Parametrs.pseudocritical_pressure(gamma_gas)
+        tc = Parametrs.pseudocritical_temperature(gamma_gas)
+
+        ppr = p / pc
+        tpr = t0 / tc
+        z = newton(Parametrs.__dak_func, x0=1, args=(ppr, tpr))
+
+        bg = t0 * z * 350.958 / p
+        return bg
+
+    @staticmethod
+    def calc_rho_gas(rs, bg, gamma_oil, gamma_gas):
+        """
+        Метод расчета плотности газа
+        :param rs: газосодержание
+        :param bg: объемный коэфициент газа
+        :param gamma_oil: относительная плотность нефти
+        :param gamma_gas: относительная плотность газа
+        :return: плотность газа
+        """
+        rho_gas = (1000 * (gamma_oil + (rs * gamma_gas * 1.2217) / 1000)) / bg
         return rho_gas
 
+    # Вязкость
     @staticmethod
-    def calc_oil(rs, bo, gamma_oil, gamma_gas):
-        oil_density = calc_oil_density(rs, bo, gamma_oil, gamma_gas)
-        return oil_density
+    def __oil_liveviscosity_beggs(oil_deadvisc, rs):
+        """
+        Метод расчета вязкости нефти, насыщенной газом, по корреляции Beggs
+
+        Parameters
+        ----------
+        :param oil_deadvisc: вязкость дегазированной нефти, (сПз)
+        :param rs: газосодержание, (м3/м3)
+
+        :return: вязкость, насыщенной газом нефти, (сПз)
+        -------
+        """
+        # Конвертация газосодержания в куб. футы/баррель
+        rs_new = rs / 0.17810760667903522
+
+        a = 10.715 * (rs_new + 100) ** (-0.515)
+        b = 5.44 * (rs_new + 150) ** (-0.338)
+        oil_liveviscosity_beggs = a * oil_deadvisc ** b
+        return oil_liveviscosity_beggs
+
+    @staticmethod
+    def __oil_deadviscosity_beggs(gamma_oil):
+        """
+        Метод расчета вязкости дегазированной нефти по корреляции Beggs
+
+        Parameters
+        ----------
+        :param gamma_oil: относительная плотность нефти, (доли),
+        (относительно воды с плотностью 1000 кг/м3 при с.у.)
+
+        :return: вязкость дегазированной нефти, сПз
+        -------
+        """
+        api = 141.5 / gamma_oil - 135.5
+        x = 10 ** (3.0324 - 0.02023 * api) * t0 ** (-1.163)
+        mu = 10 ** x - 1
+        return mu
+
+    @staticmethod
+    def calc_viscosity(gamma_oil, gamma_gas, p):
+        rs = Parametrs.calc_rs(p, gamma_oil, gamma_gas)
+        mud = Parametrs.__oil_deadviscosity_beggs(gamma_oil)
+        mus = Parametrs.__oil_liveviscosity_beggs(mud, rs)
+        return mus
+
+    @staticmethod
+    def calc_debit_qo(q_lo, f_w, bo):
+        q_oil = q_lo * (1 - f_w) * bo
+        return q_oil
+
+    @staticmethod
+    def calc_debit_qw(q_lo, f_w, bw):
+        q_water = q_lo * f_w * bw
+        return q_water
+
+    @staticmethod
+    def calc_debit_qg(q_oil, r_sb, rs, q_water, r_sw, bg):
+        q_g = (q_oil * r_sb - q_oil * rs - q_water * r_sw) * bg
+        return q_g
 
     @staticmethod
     def calc_rho_l(oil_density, f_w, rho_w):
@@ -146,12 +357,15 @@ class Parametrs:
         return v__sg
 
     """Кольцевой режим"""
-    def v_kol(self):
-        v_sg3 = self.rho_gas / self.a_p
+    def v_kol(self, rs, bg, gamma_oil, gamma_gas):
+        rho_gas = Parametrs.calc_rho_gas(rs, bg, gamma_oil, gamma_gas)
+        v_sg3 = rho_gas / self.a_p
         return v_sg3
 
-    def vk_kol(self, v_sg3):
-        v_kr = 10000 * v_sg3 * self.m_g / self.sigma_l * (self.rho_gas / self.rho_l) ** 0.5
+    def vk_kol(self, v_sg3, rs, bg, gamma_oil, gamma_gas, oil_density, f_w, rho_w):
+        rho_gas = Parametrs.calc_rho_gas(rs, bg, gamma_oil, gamma_gas)
+        rho_l = Parametrs.calc_rho_l(oil_density, f_w, rho_w)
+        v_kr = 10000 * v_sg3 * self.m_g / self.sigma_l * (rho_gas / rho_l) ** 0.5
         return v_kr
 
     def f_kol(self, v_kr):
@@ -170,14 +384,14 @@ class Parametrs:
         dp = self.f_sc * self.p_c * v_sc ** 2 / 2 * self.d
         return dp
 
-    def z_kol(self, f_e):
+    def z_kol(self, f_e, rho_l, rho_gas):
         """
         коэффициент, связывающий силу трения с толщиной пленки
         """
         if f_e > 0.9:
             z = 1 + 300 * self.delta
         else:
-            z = 1 + 24 * self.delta * (self.rho_l / self.rho_gas) ** (1 / 3)
+            z = 1 + 24 * self.delta * (rho_l / rho_gas) ** (1 / 3)
         return z
 
     def dp_c_kol(self, z, dp):
