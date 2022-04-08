@@ -28,6 +28,7 @@ class Ansari:
         self.v_m = self.v_sl + self.v_sg
 
         self.v_tr = self.v_m
+    print('q_l')
 
     def calc_fp(self, v_sl, v_s, sigma_l, rho_l, rho_gas, par):
 
@@ -49,19 +50,20 @@ class Ansari:
         sg1 = 0.25 * v_s + 0.333 * v_sl
         sg4 = 3.1 * (9.81 * sigma_l * (rho_l - rho_gas) / rho_gas ** 2) ** 1 / 4
 
-        v_sg1 = par.v_pr(v_gtb, h_ltb, v_gls)
-        v_ls1 = par.vl_pr(v_lls, h_lls, v_ltb, h_ltb)
-        v_m = par.vm_pr(v_sg1, v_ls1)
         v__sg = par.v_mus(v_sl)
-        v_sg3 = par.v_kol()
-        v_kr = par.vk_kol(v_sg3)
+        rs = Parametrs.calc_rs(gamma_gas, gamma_oil, p)
+        bg = Parametrs.calc_gas_fvf(p, gamma_gas)
+        v_sg3 = par.v_kol(rs, bg, gamma_oil, gamma_gas)
+        bo = Parametrs.calc_bo_st(rs, gamma_gas, gamma_oil)
+        oil_density = Parametrs.calc_oil_density(rs, bo, gamma_oil, gamma_gas)
+        v_kr = par.vk_kol(v_sg3, rs, bg, gamma_oil, gamma_gas, oil_density, f_w, rho_w)
         f_e = par.f_kol(v_kr)
         v_sc = par.vs_kol(f_e, v_sl, v_sg3)
 
         if v_sl < sg1:
             fp = 1
             return fp
-        elif v_m > sg1:
+        elif self.v_m > sg1:
             fp = 2
             return fp
         elif v__sg < sg4:
@@ -217,13 +219,6 @@ t0 = 20 + 273
 a_p = 20
 v_s = 50
 beta = 10
-h_lls = 130
-m_ls = 17
-v_gtb = 10
-v_gls = 15
-v_ltb = 120
-h_ltb = 140
-v_lls = 120
 fi = 100
 p_c = 10
 p = 101325
@@ -233,6 +228,7 @@ p_ls = 1
 f_ls = 2
 lambda_l = 1
 m_g = 1
+m_ls = 1
 c_0 = 1
 f_sc = 1
 delta = 1
