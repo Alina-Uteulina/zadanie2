@@ -1,6 +1,7 @@
 import numpy as np
 import math as mh
 from scipy.optimize import newton
+from sympy import diff
 C_0: float = 1.2
 C_1: float = 1.15
 t0 = 20 + 273
@@ -173,7 +174,7 @@ class Parametrs:
         return pc_t_standing
 
     @staticmethod
-    def __dak_func(z, ppr, tpr):
+    def dak_func(z, ppr, tpr):
         ropr = 0.27 * (ppr / (z * tpr))
         func = (
                 -z
@@ -196,7 +197,7 @@ class Parametrs:
         return func
 
     @staticmethod
-    def calc_gas_fvf(p: float, gamma_gas, **kwargs) -> float:
+    def calc_gas_fvf(p: float, gamma_gas) -> float:
         """
         Метод расчета объемного коэффициента газа,
         в котором в зависимости от указанного типа корреляции вызывается \
@@ -206,6 +207,7 @@ class Parametrs:
         ----------
         :param p: давление, Па
         :param z: коэффициент сжимаемости газа, 1/Па
+        :param gamma_gas: относительная плотность газа, (доли),
 
         :return: объемный коэффициент газа, м3/м3
         -------
@@ -215,7 +217,7 @@ class Parametrs:
 
         ppr = p / pc
         tpr = t0 / tc
-        z = newton(Parametrs.__dak_func, x0=1, args=(ppr, tpr))
+        z = newton(Parametrs.dak_func, x0=1, args=(ppr, tpr), maxiter=300, rtol=0.2, tol=0.2)
 
         bg = t0 * z * 350.958 / p
         return bg
@@ -308,17 +310,6 @@ class Parametrs:
         m_tr = self.m_l * self.lambda_l + self.m_g * (1 - self.lambda_l)
         return m_tr
 
-    def v_puz(self, q_l):
-        v_sl = q_l / self.a_p
-        return v_sl
-
-    def vs_puz(self, v_sl):
-        v_sg = 0.25 * self.v_s + 0.333 * v_sl
-        return v_sg
-
-    def vt_puz(self, v_sl, v_sg):
-        v_tr = v_sl + v_sg
-        return v_tr
     """Пробковый режим"""
     def v_tb(self, v_m, rho_l, rho_gas, v_sg):
         v_tb = 1.2 * v_m + 0.35 * ((9.8 * self.d * (rho_l - rho_gas))/rho_l) ** 1/2
@@ -338,18 +329,6 @@ class Parametrs:
     def p_pr(self, rho_l, h_lls, rho_gas):
         p_ls = rho_l * h_lls + rho_gas * (1 - h_lls)
         return p_ls
-
-    def v_pr(self, v_gtb, h_ltb, v_gls):
-        v_sg1 = self.beta * v_gtb * (1 - h_ltb) + (1 - self.beta) * v_gls * (1 - h_ltb)
-        return v_sg1
-
-    def vl_pr(self, v_lls, h_lls, v_ltb, h_ltb):
-        v_ls1 = (1 - self.beta) * v_lls * h_lls - self.beta * v_ltb * h_ltb
-        return v_ls1
-
-    def vm_pr(self, v_sg1, v_ls1):
-        v_m = v_sg1 + v_ls1
-        return v_m
 
     """Эмульсионный режим"""
     def v_mus(self, v_sl):
