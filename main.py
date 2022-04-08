@@ -28,7 +28,7 @@ class Ansari:
         self.v_m = self.v_sl + self.v_sg
 
         self.v_tr = self.v_m
-    print('q_l')
+
 
     def calc_fp(self, v_sl, v_s, sigma_l, rho_l, rho_gas, par):
 
