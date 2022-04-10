@@ -1,7 +1,6 @@
 import numpy as np
 import math as mh
 from scipy.optimize import newton
-from sympy import diff
 C_0: float = 1.2
 C_1: float = 1.15
 t0 = 20 + 273
@@ -9,7 +8,7 @@ t0 = 20 + 273
 
 class Parametrs:
 
-    def __init__(self, d, lambda_l, m_g, m_l, a_p, v_s, beta, f_ls, m_ls, theta, p_c, sigma_l, f_sc, delta):
+    def __init__(self, d, lambda_l, m_g, m_l, a_p, v_s, beta, f_ls, m_ls, theta, p_c, sigma_l, f_sc, delta, r_sw, p):
         self.d = d
         self.lambda_l = lambda_l
         self.m_g = m_g
@@ -24,9 +23,11 @@ class Parametrs:
         self.sigma_l = sigma_l
         self.f_sc = f_sc
         self.delta = delta
+        self.r_sw = r_sw
+        self.p = p
 
     @staticmethod
-    def calc_rs(p: float, gamma_oil: float, gamma_gas: float) -> float:
+    def calc_rs(p: float, gamma_oil: float, gamma_gas: float, t: float) -> float:
         """
         Метод расчета газосодержания по корреляции Standing
 
@@ -37,30 +38,18 @@ class Parametrs:
         (относительно воды с плотностью 1000 кг/м3 при с.у.)
         :param gamma_gas: относительная плотность газа, (доли),
         (относительно в-ха с плотностью 1.2217 кг/м3 при с.у.)
+        :param t: температура, К
 
         :return: газосодержание, (м3/м3)
         -------
         """
-        yg = 1.225 + 0.00168 * t0 - 1.76875 / gamma_oil
+        yg = 1.225 + 0.00168 * t - 1.76875 / gamma_oil
         rs = gamma_gas * (1.924 * 10 ** (-6) * p / 10 ** yg) ** 1.205
+        print(t)
         return rs
 
     @staticmethod
-    def calc_r_sw(p):
-        """
-        Метод расчета газосодержания воды
-
-        :param p: давление
-        :return: газосодержание воды
-        """
-        A = 2.12 + 3.45 * 10 ** (-3) * (1.8 * t0 + 32) - 3.59 * 10 ** (-5) * (1.8 * t0 + 32) ** 2
-        B = 0.0107 - 5.26 * 10 ** (-5) * (1.8 * t0 + 32) + 1.48 * 10 ** (-7) * (1.8 * t0 + 32) ** 2
-        C = 8.75 * 10 ** (-7) + 3.9 * 10 ** (-9) * (1.8 * t0 + 32) - 1.02 * 10 ** (-11) * (1.8 * t0 + 32) ** 2
-        r_sw = A + 14.7 * B * p + 216 * C * p ** 2
-        return r_sw
-
-    @staticmethod
-    def calc_bo_st(rs: float, gamma_oil: float, gamma_gas: float) -> float:
+    def calc_bo_st(rs: float, gamma_oil: float, gamma_gas: float, t: float) -> float:
         """
         Метод расчета объемного коэффициента нефти по корреляции Standing
 
@@ -71,12 +60,13 @@ class Parametrs:
         (относительно воды с плотностью 1000 кг/м3 при с.у.)
         :param gamma_gas: относительная плотность газа, (доли),
         (относительно в-ха с плотностью 1.2217 кг/м3 при с.
+        :param t: температура, К
 
         :return: объемный коэффициент нефти, (м3/м3)
         -------
         """
         bo = 0.972 + 0.000147 * (5.614583333333334 * rs * (gamma_gas / gamma_oil) ** 0.5 +
-                                 2.25 * t0 - 574.5875) ** 1.175
+                                 2.25 * t - 574.5875) ** 1.175
         return bo
 
     @staticmethod
@@ -99,14 +89,14 @@ class Parametrs:
         return oil_fvf_vasquez_above
 
     @staticmethod
-    def calc_bo(p, gamma_oil, gamma_gas, compr, pb):
+    def calc_bo(p, gamma_oil, gamma_gas, compr, pb, t):
         if p <= pb:
-            rs = Parametrs.calc_rs(p, gamma_oil, gamma_gas)
-            bo = Parametrs.calc_bo_st(rs, gamma_gas, gamma_oil)
+            rs = Parametrs.calc_rs(p, gamma_oil, gamma_gas, t)
+            bo = Parametrs.calc_bo_st(rs, gamma_gas, gamma_oil, t)
             return bo
 
-        rsb = Parametrs.calc_rs(pb, gamma_oil, gamma_gas)
-        bob = Parametrs.calc_bo_st(rsb, gamma_gas, gamma_oil)
+        rsb = Parametrs.calc_rs(pb, gamma_oil, gamma_gas, t)
+        bob = Parametrs.calc_bo_st(rsb, gamma_gas, gamma_oil, t)
 
         bo = Parametrs.oil_bo_vb(p, compr, pb, bob)
         return bo
@@ -197,7 +187,7 @@ class Parametrs:
         return func
 
     @staticmethod
-    def calc_gas_fvf(p: float, gamma_gas) -> float:
+    def calc_gas_fvf(p: float, gamma_gas: float, t: float) -> float:
         """
         Метод расчета объемного коэффициента газа,
         в котором в зависимости от указанного типа корреляции вызывается \
@@ -206,8 +196,8 @@ class Parametrs:
         Parameters
         ----------
         :param p: давление, Па
-        :param z: коэффициент сжимаемости газа, 1/Па
         :param gamma_gas: относительная плотность газа, (доли),
+        :param t: температура, К
 
         :return: объемный коэффициент газа, м3/м3
         -------
@@ -219,7 +209,7 @@ class Parametrs:
         tpr = t0 / tc
         z = newton(Parametrs.dak_func, x0=1, args=(ppr, tpr), maxiter=300, rtol=0.2, tol=0.2)
 
-        bg = t0 * z * 350.958 / p
+        bg = t * z * 350.958 / p
         return bg
 
     @staticmethod
@@ -258,7 +248,7 @@ class Parametrs:
         return oil_liveviscosity_beggs
 
     @staticmethod
-    def __oil_deadviscosity_beggs(gamma_oil):
+    def __oil_deadviscosity_beggs(gamma_oil, t):
         """
         Метод расчета вязкости дегазированной нефти по корреляции Beggs
 
@@ -266,19 +256,20 @@ class Parametrs:
         ----------
         :param gamma_oil: относительная плотность нефти, (доли),
         (относительно воды с плотностью 1000 кг/м3 при с.у.)
+        :param t: температура, К
 
         :return: вязкость дегазированной нефти, сПз
         -------
         """
         api = 141.5 / gamma_oil - 135.5
-        x = 10 ** (3.0324 - 0.02023 * api) * t0 ** (-1.163)
+        x = 10 ** (3.0324 - 0.02023 * api) * t ** (-1.163)
         mu = 10 ** x - 1
         return mu
 
     @staticmethod
-    def calc_viscosity(gamma_oil, gamma_gas, p):
-        rs = Parametrs.calc_rs(p, gamma_oil, gamma_gas)
-        mud = Parametrs.__oil_deadviscosity_beggs(gamma_oil)
+    def calc_viscosity(gamma_oil, gamma_gas, p, t):
+        rs = Parametrs.calc_rs(p, gamma_oil, gamma_gas, t)
+        mud = Parametrs.__oil_deadviscosity_beggs(gamma_oil, t)
         mus = Parametrs.__oil_liveviscosity_beggs(mud, rs)
         return mus
 
@@ -311,7 +302,9 @@ class Parametrs:
         return m_tr
 
     """Пробковый режим"""
-    def v_tb(self, v_m, rho_l, rho_gas, v_sg):
+    def v_tb(self, v_m, rho_l, rho_gas, q_g):
+        a_p = 200
+        v_sg = q_g/a_p
         v_tb = 1.2 * v_m + 0.35 * ((9.8 * self.d * (rho_l - rho_gas))/rho_l) ** 1/2
         v_gls = 1.2 * v_m + 1.53 * ((9.8 * self.sigma_l * (rho_l - rho_gas))/rho_l) ** 1/4
         h_gls = v_sg / (0.425 + 2.65 * v_m)
@@ -324,6 +317,7 @@ class Parametrs:
         v_gtb = v_tb - ((v_tb - v_gls) * (1 - h_lls)) / (1 - h_ltb)
         v_ltb = mh.sqrt(196.7 * 9.8 * self.sigma_l)
         v_lls = v_tb - (v_tb - (- v_ltb)) * h_ltb / h_lls
+
         return v_tb, v_gls, h_gls, h_lls, h_ltb, v_gtb, v_ltb, v_lls
 
     def p_pr(self, rho_l, h_lls, rho_gas):
@@ -332,7 +326,7 @@ class Parametrs:
 
     """Эмульсионный режим"""
     def v_mus(self, v_sl):
-        v__sg = np.sin(self.theta) / (4 - 1.2) * 1.2 * v_sl + self.v_s
+        v__sg = np.sin(self.theta * mh.pi/180) / (4 - 1.2) * 1.2 * v_sl + self.v_s
         return v__sg
 
     """Кольцевой режим"""
@@ -374,9 +368,9 @@ class Parametrs:
         return z
 
     def dp_c_kol(self, z, dp):
-        dp_c = z / (1 - 2 * self.delta) ** 5 * dp + self.p_c * 9.81 * np.sin(self.theta)
+        dp_c = z / (1 - 2 * self.delta) ** 5 * dp + self.p_c * 9.81 * np.sin(self.theta * mh.pi/180)
         return dp_c
 
     def fi_kol(self, dp_c, dp):
-        fi = dp_c - self.p_c * 9.81 * np.sin(self.theta) / dp
+        fi = dp_c - self.p_c * 9.81 * np.sin(self.theta * mh.pi/180) / dp
         return fi
