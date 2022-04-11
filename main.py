@@ -7,8 +7,8 @@ from scipy.optimize import fsolve
 
 
 class Ansari:
-    def __init__(self, d, lambda_l, m_g, a_p, v_s, beta, m_ls, sigma_l, delta, r_sw, f_w,
-                 rho_w, r_sb, gamma_oil, gamma_gas, q_lo, q_go, bw, e):
+    def __init__(self, d, lambda_l, m_g, a_p, v_s, beta, m_ls, sigma_l, delta, r_sw, f_w, rho_w, r_sb, gamma_oil,
+                 gamma_gas, q_lo, q_go, bw, e):
         self.d = d
         self.lambda_l = lambda_l
         self.m_g = m_g
@@ -259,12 +259,9 @@ v_s = 50
 beta = 10
 fi = 100
 p = 101325
-f_tr = 2  # сила трения
-f_ls = 2  # сила трения
 lambda_l = 1
 m_g = 1
 m_ls = 1
-f_sc = 1
 delta = 1
 
 # Исходные данные
