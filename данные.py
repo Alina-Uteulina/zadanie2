@@ -1,8 +1,6 @@
 import numpy as np
 import math as mh
 from scipy.optimize import newton
-C_0: float = 1.2
-C_1: float = 1.15
 
 
 class Parametrs:
@@ -266,7 +264,7 @@ class Parametrs:
 
     @staticmethod
     def calc_debit_qg(q_oil, r_sb, rs, q_water, r_sw, bg):
-        q_g = (q_oil * r_sb - q_oil * rs - q_water * r_sw) * bg
+        q_g = abs((q_oil * r_sb - q_oil * rs - q_water * r_sw)) * bg
         return float(q_g)
 
     @staticmethod
@@ -274,26 +272,31 @@ class Parametrs:
         rho_l = oil_density * (1 - f_w) + rho_w * f_w
         return float(rho_l)
 
-    def pp_puz(self, rho_l, lambda_l, rho_gas):
+    @staticmethod
+    def pp_puz(rho_l, lambda_l, rho_gas):
         p_tr = rho_l * lambda_l + rho_gas * (1 - lambda_l)
         return p_tr
 
-    def mp_puz(self, m_l, lambda_l, m_g):
+    @staticmethod
+    def mp_puz(m_l, lambda_l, m_g):
         m_tr = m_l * lambda_l + m_g * (1 - lambda_l)
         return m_tr
 
-    def np_puz(self, p_tr, v_tr, d, m_tr):
-        ne_tr = (p_tr * v_tr * d)/m_tr
-        return ne_tr
+    @staticmethod
+    def n_e(p_tr, v_tr, d, m_tr):
+        n_e = (p_tr * v_tr * d)/m_tr
+        return n_e
 
     """Пробковый режим"""
-    def v_tb(self, v_m, rho_l, rho_gas, q_g, d, sigma_l):
+
+    @staticmethod
+    def v_tb(v_m, rho_l, rho_gas, q_g, d, sigma_l):
         a_p = mh.pi * 1600
         v_sg = q_g/a_p
         v_tb = 1.2 * v_m + 0.35 * ((9.8 * d * (rho_l - rho_gas))/rho_l) ** 1/2
         v_gls = 1.2 * v_m + 1.53 * ((9.8 * sigma_l * (rho_l - rho_gas))/rho_l) ** 1/4
         h_gls = v_sg / (0.425 + 2.65 * v_m)
-        h_lls = 1 - h_gls
+        h_lls = (v_gls/(1.2 * v_m + 1.53 * ((9.8 * sigma_l * (rho_l - rho_gas))/rho_l) ** 1/4))**2
         f_hltb = (9.916 * mh.sqrt(9.8 * d)) * (
                 1 - mh.sqrt(1 - 0.15)) ** 0.5 * 0.15 - v_tb * (1 - 0.15) + h_gls * (v_tb - v_gls) + v_m
         f_htb = v_tb + (9.916 * mh.sqrt(9.8 * d)) * (
@@ -302,38 +305,31 @@ class Parametrs:
         v_gtb = v_tb - ((v_tb - v_gls) * (1 - h_lls)) / (1 - h_ltb)
         v_ltb = mh.sqrt(196.7 * 9.8 * sigma_l)
         v_lls = v_tb - (v_tb - (- v_ltb)) * h_ltb / h_lls
+        beta = (v_sg - v_gls * (1 - h_lls))/(v_gtb * (1 - h_ltb) - v_gls * (1 - h_lls))
 
-        return v_tb, v_gls, h_gls, h_lls, h_ltb, v_gtb, v_ltb, v_lls
+        return v_tb, v_gls, h_gls, h_lls, h_ltb, v_gtb, v_ltb, v_lls, beta
 
-    def p_pr(self, rho_l, h_lls, rho_gas):
+    @staticmethod
+    def p_pr(rho_l, h_lls, rho_gas):
         # print(type(rho_l), type(h_lls), type(rho_gas))
         p_ls = rho_l * h_lls + rho_gas * (1 - h_lls)
         return p_ls
 
-    def ne_pr(self, p_ls, v_m, d, m_ls):
-        ne_ls = (p_ls * v_m * d)/m_ls
-        return ne_ls
-
-    """Эмульсионный режим"""
-    def v_mus(self, v_sl, theta, v_s):
-        v__sg = np.sin(theta * mh.pi/180) / (4 - 1.2) * 1.2 * v_sl + v_s
-        return v__sg
-
-    #def ne_mus(self):
-
     """Кольцевой режим"""
-    def v_kol(self, rs, bg, gamma_oil, gamma_gas, a_p):
+
+    @staticmethod
+    def v_kol(rs, bg, gamma_oil, gamma_gas, a_p):
         rho_gas = Parametrs.calc_rho_gas(rs, bg, gamma_oil, gamma_gas)
         v_sg3 = rho_gas / a_p
         return v_sg3
 
-    def vk_kol(self, v_sg3, rs, bg, gamma_oil, gamma_gas, oil_density, f_w, rho_w, m_g, sigma_l):
-        rho_gas = Parametrs.calc_rho_gas(rs, bg, gamma_oil, gamma_gas)
-        rho_l = Parametrs.calc_rho_l(oil_density, f_w, rho_w)
+    @staticmethod
+    def vk_kol(v_sg3, m_g, sigma_l, rho_l, rho_gas):
         v_kr = 10000 * v_sg3 * m_g / sigma_l * (rho_gas / rho_l) ** 0.5
         return v_kr
 
-    def f_kol(self, v_kr):
+    @staticmethod
+    def f_kol(v_kr):
         """
         Часть объема жидкости, захваченная потоком газа
         :param v_kr: скорость крит
@@ -341,15 +337,18 @@ class Parametrs:
         f_e = 1 - mh.exp((-0.125)*(v_kr - 1.5))
         return f_e
 
-    def vs_kol(self, f_e, v_sl, v_sg3):
+    @staticmethod
+    def vs_kol(f_e, v_sl, v_sg3):
         v_sc = f_e * v_sl + v_sg3
         return v_sc
 
-    def df_kol(self, f_sc, p_c, v_sc, d):
+    @staticmethod
+    def df_kol(f_sc, p_c, v_sc, d):
         dp = f_sc * p_c * v_sc ** 2 / 2 * d
         return dp
 
-    def z_kol(self, f_e, rho_l, rho_gas, delta):
+    @staticmethod
+    def z_kol(f_e, rho_l, rho_gas, delta):
         """
         коэффициент, связывающий силу трения с толщиной пленки
         """
@@ -359,26 +358,27 @@ class Parametrs:
             z = 1 + 24 * delta * (rho_l / rho_gas) ** (1 / 3)
         return z
 
-    def dp_c_kol(self, z, dp, delta, p_c, theta):
+    @staticmethod
+    def dp_c_kol(z, dp, delta, p_c, theta):
         dp_c = z / (1 - 2 * delta) ** 5 * dp + p_c * 9.81 * np.sin(theta * mh.pi/180)
         return dp_c
 
-    def l_lc(self, f_e, v_sl, v_sg):
+    @staticmethod
+    def l_lc(f_e, v_sl, v_sg):
         lambda_lc = (f_e * v_sl)/(f_e * v_sl + v_sg)
         return lambda_lc
 
-    def p_c_kol(self, rho_l, lambda_lc, rho_gas):
+    @staticmethod
+    def p_c_kol(rho_l, lambda_lc, rho_gas):
         p_c = rho_l * lambda_lc + rho_gas * (1 - lambda_lc)
         return p_c
 
-    def m_kol(self, m_l, lambda_lc, m_g):
+    @staticmethod
+    def m_kol(m_l, lambda_lc, m_g):
         m_sc = m_l * lambda_lc + m_g * (1 - lambda_lc)
         return m_sc
 
-    def fi_kol(self, dp_c, p_c, theta, dp):
+    @staticmethod
+    def fi_kol(dp_c, p_c, theta, dp):
         fi = dp_c - p_c * 9.81 * np.sin(theta * mh.pi/180) / dp
         return fi
-
-    def ne_kol(self, p_c, v_sc, d, m_sc):
-        ne_k = (p_c * v_sc * d)/m_sc
-        return ne_k
