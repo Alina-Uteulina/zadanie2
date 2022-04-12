@@ -82,8 +82,7 @@ class Ansari:
                 режим потока:
                 * 1 - пузырьковый;
                 * 2 - пробковый;
-                * 3 - эмульсионный;
-                * 4 - кольцевой;
+                * 3 - кольцевой;
         """
         sg1 = 0.25 * self.v_s + 0.333 * self.v_sl
         sg4 = 3.1 * (9.81 * self.sigma_l * (self.rho_l - self.rho_gas) / self.rho_gas ** 2) ** 1 / 4
@@ -97,7 +96,7 @@ class Ansari:
             fp = 2
             return fp
         elif self.v_sc > sg4:
-            fp = 4
+            fp = 3
             return fp
         else:
             return 1
@@ -196,20 +195,18 @@ class Ansari:
         elif fp == 2:
             f_ls = self.calc_fls()
             gr = self.prob(f_ls)
-        elif fp == 4:
+        elif fp == 3:
             f_sc = self.calc_f_sc()
             gr = self.kol(f_sc)
 
         return gr, self.dt
 
     def calc_crd(self, h, p_wh, t_wh):
-        rs, bo, bg, oil_density, m_l, m_tr, rho_gas, rho_l, q_oil, q_water, q_g, v_sl, v_sg, v_m, v_tr, v_sg3, f_e, p_c, beta, p_tr, n_e = self.calc_params(p_wh, t_wh)
+
         result = solve_ivp(
             self.grad,
             t_span=[0, h],
             y0=[p_wh * 101325, t_wh + 273],
-            args=(rs, bo, bg, oil_density, m_l, m_tr, rho_gas, rho_l, q_oil, q_water, q_g, v_sl, v_sg, v_m, v_tr, v_sg3,
-                  f_e, p_c, beta, p_tr, n_e, dp, v_sc, p_ls)
         )
         return result.t, result.y[0, :]
 
