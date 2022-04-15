@@ -1,6 +1,7 @@
 import numpy as np
 import math as mh
 from scipy.optimize import newton
+from scipy.optimize import fsolve
 
 
 class Parametrs:
@@ -98,7 +99,7 @@ class Parametrs:
         :return: плотность нефти, (кг/м3)
         -------
         """
-        oil_density = (1000 * gamma_oil + (rs * gamma_gas * 1.2217) / 1000) / bo
+        oil_density = (1000 * (gamma_oil + ((rs * gamma_gas * 1.2217) / 1000))) / bo
         return float(oil_density)
 
     @staticmethod
@@ -162,7 +163,6 @@ class Parametrs:
                 * (ropr ** 2 / tpr ** 3)
                 * np.exp(-0.7210 * ropr ** 2)
         )
-
         return float(func)
 
     @staticmethod
@@ -311,7 +311,6 @@ class Parametrs:
 
     @staticmethod
     def p_pr(rho_l, h_lls, rho_gas):
-        # print(type(rho_l), type(h_lls), type(rho_gas))
         p_ls = rho_l * h_lls + rho_gas * (1 - h_lls)
         return p_ls
 
@@ -343,9 +342,9 @@ class Parametrs:
         return v_sc
 
     @staticmethod
-    def df_kol(f_sc, p_c, v_sc, d):
-        dp = f_sc * p_c * v_sc ** 2 / 2 * d
-        return dp
+    def dp_kol(f_sc, p_c, v_sc, d):
+        dp_c = f_sc * p_c * v_sc ** 2 / 2 * d
+        return dp_c
 
     @staticmethod
     def z_kol(f_e, rho_l, rho_gas, delta):
@@ -353,15 +352,36 @@ class Parametrs:
         коэффициент, связывающий силу трения с толщиной пленки
         """
         if f_e > 0.9:
-            z = 1 + 300 * delta
+            z_k = 1 + 300 * delta
         else:
-            z = 1 + 24 * delta * (rho_l / rho_gas) ** (1 / 3)
-        return z
+            z_k = 1 + 24 * delta * (rho_l / rho_gas) ** (1 / 3)
+        return z_k
 
     @staticmethod
-    def dp_c_kol(z, dp, delta, p_c, theta):
-        dp_c = z / (1 - 2 * delta) ** 5 * dp + p_c * 9.81 * np.sin(theta * mh.pi/180)
-        return dp_c
+    def calc_fi(delta, f_e, rho_l, rho_gas):
+        z_k = Parametrs.z_kol(f_e, rho_l, rho_gas, delta)
+        fi = z_k / (1 - 2 * delta) ** 5
+        return fi
+
+    @staticmethod
+    def dp_l_kol(f_l_kol, rho_l, v_sl, d):
+        dp_ls = (f_l_kol * rho_l * v_sl ** 2) / (2 * d)
+        return dp_ls
+
+    @staticmethod
+    def b(f_e, f_f, f_ls):
+        b = (1 - f_e) ** 2 * f_f / f_ls
+        return b
+
+    @staticmethod
+    def x_m(b, dp_ls, dp_c):
+        x_m = mh.sqrt((b * dp_ls) * dp_c)
+        return x_m
+
+    @staticmethod
+    def calc_y_m(theta, rho_l, p_c, dp_c):
+        y_m = (9.8 * np.sin(theta * mh.pi/180) * (rho_l - p_c)) / dp_c
+        return y_m
 
     @staticmethod
     def l_lc(f_e, v_sl, v_sg):
@@ -379,6 +399,14 @@ class Parametrs:
         return m_sc
 
     @staticmethod
-    def fi_kol(dp_c, p_c, theta, dp):
-        fi = dp_c - p_c * 9.81 * np.sin(theta * mh.pi/180) / dp
-        return fi
+    def f_z(delta, y_m, f_e, rho_l, rho_gas, x_m):
+        z_k = Parametrs.z_kol(f_e, rho_l, rho_gas, delta)
+        f_z = y_m - z_k / (4 * delta * (1 - delta) * (1 - 4 * delta * (1 - delta)) ** 2.5) + \
+              x_m / (4 * delta * (1 - delta)) ** 3
+        return f_z
+
+    @staticmethod
+    def calc_delta(y_m, f_e, rho_l, rho_gas, x_m):
+        delta = fsolve(Parametrs.f_z, x0=0.15, args=(y_m, f_e, rho_l, rho_gas, x_m))
+        return delta
+
