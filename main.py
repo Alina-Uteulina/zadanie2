@@ -7,8 +7,8 @@ from scipy.optimize import fsolve
 
 
 class Ansari:
-    def __init__(self, d, lambda_l, m_g, a_p, v_s, m_ls, sigma_l, delta, r_sw, f_w, rho_w, r_sb, gamma_oil,
-                 gamma_gas, q_lo, q_go, bw, e):
+    def __init__(self, d, lambda_l, m_g, a_p, v_s, m_ls, sigma_l, r_sw, f_w, rho_w, r_sb, gamma_oil, gamma_gas,
+                 q_lo, q_go, bw, e, compr, pb):
         self.d = d
         self.lambda_l = lambda_l
         self.m_g = m_g
@@ -16,7 +16,6 @@ class Ansari:
         self.v_s = v_s
         self.m_ls = m_ls
         self.sigma_l = sigma_l
-        self.delta = delta
         self.r_sw = r_sw
         self.f_w = f_w
         self.rho_w = rho_w
@@ -27,6 +26,8 @@ class Ansari:
         self.q_go = q_go
         self.bw = bw
         self.e = e
+        self.compr = compr
+        self.pb = pb
 
         self.dt = 0.03  # температурный градиент
         self.theta: int = 90
@@ -43,7 +44,7 @@ class Ansari:
         self.par = self.dan()
 
         self.rs = self.par.calc_rs(p, self.gamma_oil, self.gamma_gas, t)
-        self.bo = self.par.calc_bo_st(self.rs, self.gamma_oil, self.gamma_gas, t)
+        self.bo = self.par.calc_bo(p, self.gamma_oil, self.gamma_gas, self.compr, self.pb, t)
         self.bg = self.par.calc_gas_fvf(p, self.gamma_gas, t)
         self.oil_density = self.par.calc_oil_density(self.rs, self.bo, self.gamma_oil, self.gamma_gas)
 
@@ -63,15 +64,28 @@ class Ansari:
         self.v_sg = self.q_g / self.a_p
         self.v_m = self.v_sl + self.v_sg
         self.v_tr = self.v_m
-
         self.v_sg3 = self.par.v_kol(self.rs, self.bg, self.gamma_oil, self.gamma_gas, self.a_p)
         v_kr = self.par.vk_kol(self.v_sg3, self.m_g, self.sigma_l, self.rho_l, self.rho_gas)
+
+
         self.f_e = self.par.f_kol(v_kr)
         lambda_lc = self.par.l_lc(self.f_e, self.v_sl, self.v_sg)
         self.p_c = self.par.p_c_kol(self.rho_l, lambda_lc, self.rho_gas)
         self.beta = self.par.v_tb(self.v_m, self.rho_l, self.rho_gas, self.q_g, self.d, self.sigma_l)[8]
         self.p_tr = self.par.pp_puz(self.rho_l, self.lambda_l, self.rho_gas)
         self.n_e = self.par.n_e(self.p_tr, self.v_tr, self.d, self.m_tr)
+
+
+        f_sc = Ansari.calc_f_sc(self)
+        self.v_sc = self.f_e * self.v_sl + self.v_sg
+        self.dp_c = self.par.dp_kol(f_sc, self.p_c, self.v_sc, self.d)
+        f_sl = Ansari.f_sl(self)
+        f_f = Ansari.f_f(self)
+        b = self.par.b(self.f_e, f_f, f_sl)
+        dp_ls = self.par.dp_l_kol(f_sl, self.rho_l, self.v_sl, self.d)
+        x_m = self.par.x_m(b, dp_ls, self.dp_c)
+        y_m = self.par.calc_y_m(self.theta, self.rho_l, self.p_c, self.dp_c)
+        self.delta = self.par.calc_delta(y_m, self.f_e, self.rho_l, self.rho_gas, x_m)
 
     def calc_fp(self):
 
@@ -142,6 +156,25 @@ class Ansari:
             f_sc = fsolve(self.calc_f, args=(ne_k), x0=1)  # турбулентный режим
         return f_sc
 
+    def f_sl(self):
+        ne_s = self.par.n_e(self.rho_l, self.v_sl, self.d, self.m_l)
+
+        if ne_s < 2000:
+            f_sl = 64 / ne_s
+        else:
+            f_sl = fsolve(self.calc_f, args=(ne_s), x0=1)  # турбулентный режим
+        return f_sl
+
+    def f_f(self):
+        v_f = (self.v_sl * (1 - self.f_e)) / (4 * self.delta * (1 - self.delta))
+        ne_f = self.par.n_e(self.rho_l, v_f, self.d, self.m_l)
+
+        if ne_f < 2000:
+            f_f = 64 / ne_f
+        else:
+            f_f = fsolve(self.calc_f, args=(ne_f), x0=1)  # турбулентный режим
+        return f_f
+
     def puz(self, f_tr):
         """
         Функция расчета градиента для пузырькового режима
@@ -161,7 +194,7 @@ class Ansari:
 
         dp_dl_grav = ((1 - self.beta) * self.p_ls + self.beta * self.rho_gas) * 9.81 * np.sin(
             self.theta * math.pi / 180)  # гравитационная составляющая
-        dp_dl_fric = f_ls * self.p_ls * self.v_m ** 2 / (2 * self.d) * (1 - self.beta)  # составляющая по трению
+        dp_dl_fric = f_ls * self.p_ls * self.v_m ** 2 / ((2 * self.d) * (1 - self.beta))  # составляющая по трению
 
         return dp_dl_grav + dp_dl_fric
 
@@ -173,13 +206,11 @@ class Ansari:
         ----------
         """
 
-        self.dp = self.par.df_kol(f_sc, self.p_c, self.v_sc, self.d)
-        z = self.par.z_kol(self.f_e, self.rho_l, self.rho_gas, self.delta)
-        dp_c = self.par.dp_c_kol(z, self.dp, self.delta, self.p_c, self.theta)
-        fi = self.par.fi_kol(dp_c, self.p_c, self.theta, self.dp)
+        fi = self.par.calc_fi(self.delta, self.f_e, self.rho_l, self.rho_gas)
 
-        dp_dl_grav = fi * self.dp  # гравитационная составляющая
+        dp_dl_grav = fi * f_sc * self.p_c * self.v_sc ** 2 / (2 * d)   # гравитационная составляющая
         dp_dl_fric = self.p_c * 9.81 * np.sin(self.theta * math.pi / 180)  # составляющая по трению
+
         return dp_dl_grav + dp_dl_fric
 
     def grad(self, h, pt):
@@ -188,7 +219,7 @@ class Ansari:
         self.calc_params(pt[0], pt[1])
 
         fp = self.calc_fp()
-
+        fp = 3
         if fp == 1:
             f_tr = self.calc_ftr()
             gr = self.puz(f_tr)
@@ -233,7 +264,7 @@ p = 101325
 lambda_l = 1
 m_g = 1
 m_ls = 1
-delta = 1
+
 
 # Исходные данные
 
@@ -242,12 +273,12 @@ p_wh = 10  # давление на устье, атм
 t_wh = 20  # температура на устье, С
 
 # Запуск расчета
-ans = Ansari(d, lambda_l, m_g, a_p, v_s, m_ls, sigma_l, delta, r_sw, f_w, rho_w, r_sb, gamma_oil, gamma_gas, q_lo,
-             q_go, bw, e)
+ans = Ansari(d, lambda_l, m_g, a_p, v_s, m_ls, sigma_l, r_sw, f_w, rho_w, r_sb, gamma_oil, gamma_gas, q_lo, q_go, bw, e,
+             compr, pb)
 crd = ans.calc_crd(h, p_wh, t_wh)
 
 # Рисование результатов
 
-plt.plot(crd[0], crd[1])
-plt.show()
-print(crd)
+# plt.plot(crd[0], crd[1])
+# plt.show()
+# print(crd)
