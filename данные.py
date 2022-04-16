@@ -402,7 +402,7 @@ class Parametrs:
     def f_z(delta, y_m, f_e, rho_l, rho_gas, x_m):
         z_k = Parametrs.z_kol(f_e, rho_l, rho_gas, delta)
         f_z = y_m - z_k / (4 * delta * (1 - delta) * (1 - 4 * delta * (1 - delta)) ** 2.5) + \
-              x_m / (4 * delta * (1 - delta)) ** 3
+              x_m ** 2 / (4 * delta * (1 - delta)) ** 3
         return f_z
 
     @staticmethod
