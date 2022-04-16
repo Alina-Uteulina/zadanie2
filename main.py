@@ -75,9 +75,9 @@ class Ansari:
         self.p_tr = self.par.pp_puz(self.rho_l, self.lambda_l, self.rho_gas)
         self.n_e = self.par.n_e(self.p_tr, self.v_tr, self.d, self.m_tr)
 
-
-        f_sc = Ansari.calc_f_sc(self)
         self.v_sc = self.f_e * self.v_sl + self.v_sg
+        f_sc = Ansari.calc_f_sc(self)
+
         self.dp_c = self.par.dp_kol(f_sc, self.p_c, self.v_sc, self.d)
         f_sl = Ansari.f_sl(self)
         f_f = Ansari.f_f(self)
@@ -100,8 +100,6 @@ class Ansari:
         """
         sg1 = 0.25 * self.v_s + 0.333 * self.v_sl
         sg4 = 3.1 * (9.81 * self.sigma_l * (self.rho_l - self.rho_gas) / self.rho_gas ** 2) ** 1 / 4
-
-        self.v_sc = self.par.vs_kol(self.f_e, self.v_sl, self.v_sg3)
 
         if self.v_sl < sg1:
             fp = 1
@@ -208,7 +206,7 @@ class Ansari:
 
         fi = self.par.calc_fi(self.delta, self.f_e, self.rho_l, self.rho_gas)
 
-        dp_dl_grav = fi * f_sc * self.p_c * self.v_sc ** 2 / (2 * d)   # гравитационная составляющая
+        dp_dl_grav = fi * (f_sc * self.p_c * self.v_sc ** 2 / (2 * d))  # гравитационная составляющая
         dp_dl_fric = self.p_c * 9.81 * np.sin(self.theta * math.pi / 180)  # составляющая по трению
 
         return dp_dl_grav + dp_dl_fric
@@ -251,7 +249,7 @@ f_w = 1  # обводненность
 bw = 1
 q_lo = 100/86400
 q_go = 100/86400
-sigma_l = 1.5
+sigma_l = 1
 gamma_gas = 0.7  # относительная плотность газа, Па
 gamma_oil = 0.801  # относительная плотность нефти, Па
 pb = 50  # давление насыщения, Па
